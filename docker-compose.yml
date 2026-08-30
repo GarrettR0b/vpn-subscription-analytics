@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai_saas_analytics_postgres
+    environment:
+      POSTGRES_DB: ai_saas
+      POSTGRES_USER: analytics
+      POSTGRES_PASSWORD: analytics
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics -d ai_saas"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - ai_saas_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  ai_saas_postgres_data:

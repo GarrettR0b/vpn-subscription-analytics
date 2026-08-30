@@ -1,0 +1,11 @@
+experiment_id,workspace_id,variant,assigned_at,stratum
+guided_onboarding_v1,ws_000004,control,2026-05-03T17:03:47Z,organic:6-20
+guided_onboarding_v1,ws_000005,treatment,2026-05-05T11:35:21Z,organic:21-50
+guided_onboarding_v1,ws_000006,control,2026-05-17T16:49:23Z,organic:2-5
+guided_onboarding_v1,ws_000007,treatment,2026-04-28T15:34:26Z,organic:6-20
+guided_onboarding_v1,ws_000008,treatment,2026-03-18T11:52:02Z,organic:6-20
+guided_onboarding_v1,ws_000011,control,2026-03-26T12:24:11Z,content:6-20
+guided_onboarding_v1,ws_000013,control,2026-03-29T08:26:44Z,paid_search:21-50
+guided_onboarding_v1,ws_000014,control,2026-03-22T11:55:07Z,content:6-20
+guided_onboarding_v1,ws_000018,treatment,2026-04-02T16:24:47Z,organic:51+
+guided_onboarding_v1,ws_000019,control,2026-03-20T12:28:05Z,organic:6-20

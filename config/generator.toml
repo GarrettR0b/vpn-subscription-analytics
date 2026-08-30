@@ -1,0 +1,14 @@
+[project]
+seed = 20260830
+start_date = "2026-01-01"
+observation_days = 180
+experiment_start_day = 60
+
+[profiles.smoke]
+workspaces = 40
+
+[profiles.small]
+workspaces = 600
+
+[profiles.portfolio]
+workspaces = 12000

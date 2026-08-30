@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.ruff_cache/
+*.egg-info/
+data/generated/*
+!data/generated/.gitkeep
+dashboard/screenshots/*.tmp
+*.log
