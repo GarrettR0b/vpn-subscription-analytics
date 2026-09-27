@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 from .generator import TABLE_FIELDS
+from .metrics import monthly_business_records
 from .settings import project_root
 
 
@@ -49,91 +49,138 @@ def _unique_check(rows: list[dict[str, str]], key: str, name: str) -> CheckResul
 def validate_dataset(input_dir: Path) -> list[CheckResult]:
     tables = {name: _read_table(input_dir, name) for name in TABLE_FIELDS}
     users = {row["user_id"]: row for row in tables["users"]}
-    devices = {row["device_id"]: row for row in tables["devices"]}
-    servers = {row["server_id"]: row for row in tables["vpn_servers"]}
+    subscriptions = {row["subscription_id"]: row for row in tables["subscriptions"]}
+    servers = {row["server_id"]: row for row in tables["proxy_servers"]}
+    periods = tables["dataset_periods"]
 
     results = [
+        CheckResult("one_dataset_period", abs(len(periods) - 1)),
         _unique_check(tables["users"], "user_id", "unique_user_id"),
-        _unique_check(tables["devices"], "device_id", "unique_device_id"),
         _unique_check(tables["subscriptions"], "subscription_id", "unique_subscription_id"),
-        _unique_check(tables["product_events"], "event_id", "unique_event_id"),
-        _unique_check(tables["vpn_servers"], "server_id", "unique_server_id"),
-        _unique_check(tables["vpn_sessions"], "vpn_session_id", "unique_vpn_session_id"),
+        _unique_check(
+            tables["subscription_links"],
+            "subscription_link_id",
+            "unique_subscription_link_id",
+        ),
+        _unique_check(tables["payments"], "payment_id", "unique_payment_id"),
+        _unique_check(tables["proxy_servers"], "server_id", "unique_server_id"),
+        _unique_check(tables["proxy_sessions"], "proxy_session_id", "unique_proxy_session_id"),
     ]
+
+    subscription_users = [row["user_id"] for row in tables["subscriptions"]]
+    link_subscriptions = [row["subscription_id"] for row in tables["subscription_links"]]
     results.extend(
         [
             CheckResult(
-                "devices_have_user",
-                sum(row["user_id"] not in users for row in tables["devices"]),
+                "subscriptions_have_users",
+                sum(row["user_id"] not in users for row in tables["subscriptions"]),
             ),
             CheckResult(
-                "events_have_user_and_device",
+                "one_subscription_per_user",
+                len(subscription_users) - len(set(subscription_users)),
+            ),
+            CheckResult(
+                "one_link_per_subscription",
+                abs(len(link_subscriptions) - len(subscriptions))
+                + (len(link_subscriptions) - len(set(link_subscriptions))),
+            ),
+            CheckResult(
+                "links_have_matching_subscription_and_user",
                 sum(
-                    row["user_id"] not in users
-                    or (bool(row["device_id"]) and row["device_id"] not in devices)
-                    for row in tables["product_events"]
+                    (subscription := subscriptions.get(row["subscription_id"])) is None
+                    or subscription["user_id"] != row["user_id"]
+                    for row in tables["subscription_links"]
                 ),
             ),
             CheckResult(
-                "sessions_have_parents",
+                "payments_have_matching_subscription_and_user",
+                sum(
+                    (subscription := subscriptions.get(row["subscription_id"])) is None
+                    or subscription["user_id"] != row["user_id"]
+                    for row in tables["payments"]
+                ),
+            ),
+            CheckResult(
+                "sessions_have_matching_parents",
                 sum(
                     row["user_id"] not in users
-                    or row["device_id"] not in devices
                     or row["server_id"] not in servers
-                    for row in tables["vpn_sessions"]
+                    or (subscription := subscriptions.get(row["subscription_id"])) is None
+                    or subscription["user_id"] != row["user_id"]
+                    for row in tables["proxy_sessions"]
                 ),
             ),
         ]
     )
 
-    chronology_failures = 0
-    invalid_properties = 0
-    for event in tables["product_events"]:
-        registered_at = _timestamp(users[event["user_id"]]["registered_at"])
-        occurred_at = _timestamp(event["occurred_at"])
-        if registered_at and occurred_at and occurred_at < registered_at:
-            chronology_failures += 1
-        try:
-            if not isinstance(json.loads(event["properties"]), dict):
-                invalid_properties += 1
-        except json.JSONDecodeError:
-            invalid_properties += 1
-    results.append(CheckResult("events_not_before_registration", chronology_failures))
-    results.append(CheckResult("event_properties_are_json_objects", invalid_properties))
-
-    device_chronology_failures = 0
-    for device in tables["devices"]:
-        registered_at = _timestamp(users[device["user_id"]]["registered_at"])
-        installed_at = _timestamp(device["installed_at"])
-        first_open_at = _timestamp(device["first_open_at"])
+    subscription_chronology_failures = 0
+    invalid_subscription_status = 0
+    period_end = _timestamp(periods[0]["period_end"]) if periods else None
+    for subscription in tables["subscriptions"]:
+        user = users.get(subscription["user_id"])
+        registered_at = _timestamp(user["registered_at"]) if user else None
+        purchased_at = _timestamp(subscription["purchased_at"])
+        starts_at = _timestamp(subscription["starts_at"])
+        ends_at = _timestamp(subscription["ends_at"])
         if (
             not registered_at
-            or not installed_at
-            or installed_at < registered_at
-            or (first_open_at and first_open_at < installed_at)
+            or not purchased_at
+            or not starts_at
+            or purchased_at < registered_at
+            or starts_at < purchased_at
+            or (ends_at and ends_at < starts_at)
         ):
-            device_chronology_failures += 1
-    results.append(CheckResult("valid_device_chronology", device_chronology_failures))
+            subscription_chronology_failures += 1
+        expected_status = "active" if not ends_at or ends_at >= period_end else "expired"
+        invalid_subscription_status += subscription["status"] != expected_status
+    results.append(CheckResult("valid_subscription_chronology", subscription_chronology_failures))
+    results.append(CheckResult("subscription_status_matches_period", invalid_subscription_status))
+
+    link_chronology_failures = 0
+    invalid_happ_client = 0
+    for link in tables["subscription_links"]:
+        subscription = subscriptions.get(link["subscription_id"])
+        issued_at = _timestamp(link["issued_at"])
+        first_fetched_at = _timestamp(link["first_fetched_at"])
+        last_fetched_at = _timestamp(link["last_fetched_at"])
+        purchased_at = _timestamp(subscription["purchased_at"]) if subscription else None
+        if (
+            not issued_at
+            or (purchased_at and issued_at < purchased_at)
+            or (first_fetched_at and first_fetched_at < issued_at)
+            or (last_fetched_at and first_fetched_at and last_fetched_at < first_fetched_at)
+            or (bool(first_fetched_at) != (int(link["fetch_count"]) > 0))
+        ):
+            link_chronology_failures += 1
+        invalid_happ_client += link["client_name"] != "HAPP"
+    results.append(CheckResult("valid_subscription_link_chronology", link_chronology_failures))
+    results.append(CheckResult("subscription_client_is_happ", invalid_happ_client))
+
+    payment_chronology_failures = 0
+    for payment in tables["payments"]:
+        subscription = subscriptions.get(payment["subscription_id"])
+        paid_at = _timestamp(payment["paid_at"])
+        purchased_at = _timestamp(subscription["purchased_at"]) if subscription else None
+        if not paid_at or (purchased_at and paid_at < purchased_at):
+            payment_chronology_failures += 1
+    results.append(CheckResult("valid_payment_chronology", payment_chronology_failures))
 
     session_chronology_failures = 0
-    session_consistency_failures = 0
     invalid_measures = 0
     invalid_status = 0
-    for session in tables["vpn_sessions"]:
+    for session in tables["proxy_sessions"]:
+        subscription = subscriptions.get(session["subscription_id"])
         started_at = _timestamp(session["started_at"])
         ended_at = _timestamp(session["ended_at"])
-        device = devices.get(session["device_id"])
-        registered_at = _timestamp(users[session["user_id"]]["registered_at"])
-        installed_at = _timestamp(device["installed_at"]) if device else None
+        subscription_start = _timestamp(subscription["starts_at"]) if subscription else None
+        subscription_end = _timestamp(subscription["ends_at"]) if subscription else None
         if (
             not started_at
             or (ended_at and ended_at < started_at)
-            or (registered_at and started_at < registered_at)
-            or (installed_at and started_at < installed_at)
+            or (subscription_start and started_at < subscription_start)
+            or (subscription_end and started_at >= subscription_end)
         ):
             session_chronology_failures += 1
-        if device and device["user_id"] != session["user_id"]:
-            session_consistency_failures += 1
         if (
             int(session["connection_time_ms"]) < 0
             or int(session["bytes_down"]) < 0
@@ -142,43 +189,34 @@ def validate_dataset(input_dir: Path) -> list[CheckResult]:
             invalid_measures += 1
         if (session["connection_status"] == "success") != bool(ended_at):
             invalid_status += 1
-    results.append(CheckResult("valid_session_chronology", session_chronology_failures))
-    results.append(CheckResult("session_user_device_consistency", session_consistency_failures))
+    results.append(CheckResult("valid_proxy_session_chronology", session_chronology_failures))
     results.append(CheckResult("nonnegative_session_measures", invalid_measures))
     results.append(CheckResult("session_status_matches_end_time", invalid_status))
-
-    assignments: dict[tuple[str, str], set[str]] = {}
-    for row in tables["experiment_assignments"]:
-        assignments.setdefault((row["experiment_id"], row["user_id"]), set()).add(row["variant"])
-    results.append(
-        CheckResult(
-            "one_experiment_variant_per_user",
-            sum(len(variants) > 1 for variants in assignments.values()),
-        )
-    )
-
-    subscription_users = [row["user_id"] for row in tables["subscriptions"]]
-    results.append(
-        CheckResult(
-            "one_subscription_per_user",
-            abs(len(subscription_users) - len(users))
-            + (len(subscription_users) - len(set(subscription_users))),
-        )
-    )
     results.append(
         CheckResult(
             "positive_server_capacity_and_cost",
             sum(
-                int(row["capacity_mbps"]) <= 0 or float(row["hourly_cost_usd"]) <= 0
-                for row in tables["vpn_servers"]
+                int(row["capacity_mbps"]) <= 0 or float(row["monthly_cost_rub"]) <= 0
+                for row in tables["proxy_servers"]
             ),
         )
     )
+
+    if periods:
+        target = int(periods[0]["regular_user_target"])
+        monthly = monthly_business_records(input_dir)
+        results.append(
+            CheckResult(
+                "regular_paid_users_match_target",
+                sum(row["regular_paid_users"] != target for row in monthly),
+                f"target={target}",
+            )
+        )
     return results
 
 
 def _arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate generated subscription VPN CSV files.")
+    parser = argparse.ArgumentParser(description="Validate generated HAPP VPN service CSV files.")
     parser.add_argument("--input-dir", type=Path, default=project_root() / "data" / "generated")
     return parser.parse_args(argv)
 
@@ -187,7 +225,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = _arguments(argv)
     try:
         results = validate_dataset(args.input_dir)
-    except (FileNotFoundError, ValueError, TypeError) as error:
+    except (FileNotFoundError, ValueError, TypeError, KeyError) as error:
         print(f"DATASET ERROR: {error}")
         return 2
     name_width = max(len(result.check_name) for result in results)

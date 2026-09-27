@@ -1,17 +1,9 @@
-# DataLens dashboard contract
+# BI dashboard contract
 
-DataLens подключается к PostgreSQL analytics marts, а не к сырым CSV.
+BI-инструмент подключается к PostgreSQL analytics marts:
 
-Week 1 source:
+- `analytics.mart_monthly_business` — база, активность, churn, MRR, cash revenue, трафик;
+- `analytics.mart_subscriber_activation` — путь от оплаты до использования через HAPP.
 
-- `analytics.mart_user_activation`.
-
-Следующие витрины:
-
-- `analytics.mart_daily_connection_quality`;
-- `analytics.mart_subscription_retention`;
-- `analytics.mart_server_unit_economics`;
-- `analytics.mart_experiment_readout`.
-
-Публичная версия использует только synthetic data. Screenshots и описание фильтров
-сохраняются как offline backup.
+Минимальные страницы: **Business overview** и **New subscriber activation**. Публичная
+версия использует только synthetic data; выполненный HTML-notebook служит offline backup.

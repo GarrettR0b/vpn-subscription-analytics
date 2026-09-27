@@ -1,16 +1,16 @@
 # Week 1 acceptance criteria
 
-- генерация профиля `small` воспроизводится одним seed;
-- каждый CSV проходит Python QA без ошибок;
-- PostgreSQL поднимается через Docker Compose;
-- PK/FK и временная логика core tables сохраняются;
-- `analytics.mart_user_activation` содержит одну строку на eligible user;
+- профиль `small` воспроизводится одним seed и создаёт ядро из 435 пользователей;
+- приток новых пользователей заметно различается по месяцам без скачков в сотни клиентов;
+- все CSV проходят Python QA;
+- PostgreSQL поднимается через Docker Compose, PK/FK и временная логика сохраняются;
+- обе analytics-витрины имеют заявленный grain;
 - SQL checks возвращают только `PASS`;
-- Python и SQL дают одинаковые activation counts;
+- Python и SQL совпадают по ключам и метрикам;
 - notebook выполняется сверху вниз без ручного вмешательства;
-- README явно маркирует данные и результаты как synthetic.
+- публичные материалы явно маркируют данные и результаты как synthetic.
 
-Полный локальный прогон после активации `.venv`:
+Полный прогон:
 
 ```powershell
 .\scripts\run_week1.ps1 -Profile small

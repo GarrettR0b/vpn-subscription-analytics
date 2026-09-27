@@ -1,0 +1,11 @@
+payment_id,subscription_id,user_id,paid_at,amount_rub,currency,payment_type,payment_status,sales_channel
+pay_000001_01,sub_000001,usr_000001,2026-03-03T00:00:00Z,2990,RUB,renewal,succeeded,telegram_bot
+pay_000002_01,sub_000002,usr_000002,2026-03-17T00:00:00Z,899,RUB,renewal,succeeded,telegram_bot
+pay_000002_02,sub_000002,usr_000002,2026-06-17T00:00:00Z,899,RUB,renewal,succeeded,telegram_bot
+pay_000003_01,sub_000003,usr_000003,2026-01-03T00:00:00Z,349,RUB,renewal,succeeded,website
+pay_000003_02,sub_000003,usr_000003,2026-02-03T00:00:00Z,349,RUB,renewal,succeeded,website
+pay_000003_03,sub_000003,usr_000003,2026-03-03T00:00:00Z,349,RUB,renewal,succeeded,website
+pay_000003_04,sub_000003,usr_000003,2026-04-03T00:00:00Z,349,RUB,renewal,succeeded,website
+pay_000003_05,sub_000003,usr_000003,2026-05-03T00:00:00Z,349,RUB,renewal,succeeded,website
+pay_000003_06,sub_000003,usr_000003,2026-06-03T00:00:00Z,349,RUB,renewal,succeeded,website
+pay_000004_01,sub_000004,usr_000004,2026-01-28T00:00:00Z,349,RUB,renewal,succeeded,telegram_bot

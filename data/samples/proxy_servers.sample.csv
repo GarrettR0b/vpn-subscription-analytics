@@ -1,0 +1,11 @@
+server_id,country,city,region,provider,capacity_mbps,monthly_cost_rub,launched_at,is_active
+srv_001,DE,Frankfurt,Europe,cloud_a,1500,7900,2025-06-19T00:00:00Z,true
+srv_002,NL,Amsterdam,Europe,cloud_b,1000,6500,2024-03-27T00:00:00Z,true
+srv_003,FI,Helsinki,Europe,colo_c,1000,4900,2024-05-21T00:00:00Z,true
+srv_004,PL,Warsaw,Europe,colo_c,2000,4900,2024-03-28T00:00:00Z,true
+srv_005,GB,London,Europe,cloud_a,1500,4900,2024-12-11T00:00:00Z,true
+srv_006,US,New York,North America,cloud_a,2000,4900,2025-02-12T00:00:00Z,true
+srv_007,CA,Toronto,North America,cloud_a,2000,3900,2025-08-11T00:00:00Z,true
+srv_008,SG,Singapore,Asia,cloud_b,1500,7900,2025-04-15T00:00:00Z,true
+srv_009,JP,Tokyo,Asia,colo_c,2000,7900,2025-05-22T00:00:00Z,true
+srv_010,KZ,Almaty,Central Asia,cloud_a,2000,3900,2024-12-03T00:00:00Z,true

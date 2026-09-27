@@ -10,13 +10,13 @@ from .generator import TABLE_FIELDS
 from .settings import project_root
 
 LOAD_ORDER = (
+    "dataset_periods",
     "users",
-    "devices",
     "subscriptions",
-    "product_events",
-    "vpn_servers",
-    "vpn_sessions",
-    "experiment_assignments",
+    "subscription_links",
+    "payments",
+    "proxy_servers",
+    "proxy_sessions",
 )
 
 
@@ -32,11 +32,7 @@ def _arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--schema-sql", type=Path, default=root / "sql" / "ddl" / "001_schema.sql")
-    parser.add_argument(
-        "--mart-sql",
-        type=Path,
-        default=root / "sql" / "marts" / "001_mart_user_activation.sql",
-    )
+    parser.add_argument("--marts-dir", type=Path, default=root / "sql" / "marts")
     parser.add_argument(
         "--checks-sql",
         type=Path,
@@ -65,11 +61,6 @@ def main(argv: Iterable[str] | None = None) -> int:
     with psycopg.connect(args.database_url) as connection:
         with connection.cursor() as cursor:
             cursor.execute(args.schema_sql.read_text(encoding="utf-8"))
-            cursor.execute(
-                "TRUNCATE TABLE "
-                "core.experiment_assignments, core.vpn_sessions, core.product_events, "
-                "core.subscriptions, core.devices, core.vpn_servers, core.users CASCADE"
-            )
             for table_name in LOAD_ORDER:
                 fields = TABLE_FIELDS[table_name]
                 copy_statement = sql.SQL(
@@ -88,7 +79,9 @@ def main(argv: Iterable[str] | None = None) -> int:
                     while chunk := input_file.read(64 * 1024):
                         copy.write(chunk)
                 print(f"Loaded core.{table_name}")
-            cursor.execute(args.mart_sql.read_text(encoding="utf-8"))
+            for mart_path in sorted(args.marts_dir.glob("*.sql")):
+                cursor.execute(mart_path.read_text(encoding="utf-8"))
+                print(f"Created marts from {mart_path.name}")
             cursor.execute(args.checks_sql.read_text(encoding="utf-8"))
             results = cursor.fetchall()
             print("\nPostgreSQL checks")
@@ -99,7 +92,7 @@ def main(argv: Iterable[str] | None = None) -> int:
                 print("Load rolled back because a database check failed.")
                 return 1
         connection.commit()
-    print("PostgreSQL load and user activation mart refresh completed.")
+    print("PostgreSQL load and analytics mart refresh completed.")
     return 0
 
 

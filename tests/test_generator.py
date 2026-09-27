@@ -13,9 +13,9 @@ def _settings() -> GeneratorSettings:
     return GeneratorSettings(
         seed=20260830,
         start_date=date(2026, 1, 1),
-        observation_days=180,
-        experiment_start_day=60,
-        user_count=150,
+        observation_days=181,
+        regular_user_count=30,
+        prospect_user_count=120,
     )
 
 

@@ -1,51 +1,46 @@
 # Metric dictionary
 
-## Eligible user
+## Stable regular paid users
 
-Новый пользователь, который не является internal/test actor и имеет полное семидневное
-окно наблюдения. Генератор создаёт пользователей минимум за 14 дней до конца периода.
+Пользователи, чья подписка началась до периода наблюдения, не завершилась до его конца и
+имеет хотя бы одну успешную прокси-сессию в месяце. Генератор профиля `small` создаёт
+ровно 435 таких пользователей в каждом полном месяце.
 
-## Successful VPN session
+## Monthly active paid users
 
-Строка `core.vpn_sessions` со `connection_status = 'success'`, непустым `ended_at` и
-положительной длительностью. Неуспешные попытки остаются в denominator quality metrics.
+Уникальные пользователи с активной платной подпиской и хотя бы одной успешной
+прокси-сессией в календарном месяце. Включает стабильное ядро и новых/временных клиентов.
 
-## 7-day activation — primary KPI
+## Eligible new subscription
+
+Не внутренняя подписка, начавшаяся внутри периода и имеющая полное семидневное окно
+наблюдения.
+
+## 7-day activation — primary onboarding KPI
 
 ```text
-activated eligible users / all eligible new users
+activated eligible subscriptions / all eligible new subscriptions
 ```
 
-Пользователь активирован, если до `registered_at + 7 days`:
+Подписка активирована, если до `starts_at + 7 days`:
 
-- приложение установлено;
-- произошло минимум три успешных VPN-сессии;
-- успешные сессии были минимум в два разных UTC-дня;
-- суммарное защищённое время составило не менее 30 минут.
+- персональная ссылка впервые загружена в HAPP;
+- проведено минимум три успешных прокси-сессии;
+- успешные сессии прошли минимум в два разных UTC-дня;
+- защищённое время составило минимум 30 минут.
 
-Метрика отражает не разовый технический тест, а повторное получение ценности. Порог
-является портфолио-допущением и в реальной компании должен калиброваться по retention.
+Порог 30 минут — портфолио-допущение; в production его калибруют по retention.
 
-## Driver metrics
+## Revenue
 
-- install rate within 24h;
-- first connection success rate within 24h;
-- median time to first successful connection;
-- share with a successful connection on 2+ days in week 1.
+- `cash_revenue_rub` — успешные платежи по дате фактической оплаты;
+- `normalized_mrr_rub` — цена активной на конец месяца подписки, делённая на длительность
+  тарифа в месяцах.
 
 ## Guardrails
 
-- connection failure rate;
-- p95 successful connection time, ms;
-- forced disconnect rate;
-- infrastructure cost per protected GB (следующий этап).
+- `connection_failure_rate` — неуспешные попытки / все прокси-сессии;
+- `p95_connection_time_ms` — p95 времени установления успешного соединения;
+- `traffic_gb` — входящий и исходящий успешный прокси-трафик.
 
-## Paid conversion
-
-Доля eligible users с непустым `converted_at` в `core.subscriptions`. Показывается по
-activation cohort, plan и acquisition channel; не считается причинным эффектом activation.
-
-## Experiment
-
-`smart_location_onboarding_v1` сравнивает control и treatment на уровне user по ITT.
-Primary KPI — 7-day activation; guardrails — failure rate и p95 connection time.
+Сравнение сайта и Telegram-бота является описательным и не доказывает причинность.

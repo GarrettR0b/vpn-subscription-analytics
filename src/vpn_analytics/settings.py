@@ -11,8 +11,12 @@ class GeneratorSettings:
     seed: int
     start_date: date
     observation_days: int
-    experiment_start_day: int
-    user_count: int
+    regular_user_count: int
+    prospect_user_count: int
+
+    @property
+    def user_count(self) -> int:
+        return self.regular_user_count + self.prospect_user_count
 
 
 def project_root() -> Path:
@@ -37,6 +41,6 @@ def load_generator_settings(
         seed=seed_override if seed_override is not None else int(project["seed"]),
         start_date=date.fromisoformat(project["start_date"]),
         observation_days=int(project["observation_days"]),
-        experiment_start_day=int(project["experiment_start_day"]),
-        user_count=int(profiles[profile]["users"]),
+        regular_user_count=int(profiles[profile]["regular_users"]),
+        prospect_user_count=int(profiles[profile]["prospects"]),
     )

@@ -1,14 +1,16 @@
 [project]
 seed = 20260830
 start_date = "2026-01-01"
-observation_days = 180
-experiment_start_day = 60
+observation_days = 181
 
 [profiles.smoke]
-users = 50
+regular_users = 25
+prospects = 25
 
 [profiles.small]
-users = 800
+regular_users = 435
+prospects = 365
 
 [profiles.portfolio]
-users = 15000
+regular_users = 435
+prospects = 2500
