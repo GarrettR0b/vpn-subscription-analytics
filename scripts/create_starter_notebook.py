@@ -7,15 +7,22 @@ from pathlib import Path
 import nbformat as nbf
 import pandas as pd
 
-from ai_saas_analytics.metrics import activation_records
+from vpn_analytics.metrics import user_activation_records
 
 
 def _arguments() -> argparse.Namespace:
     project_root = Path(__file__).resolve().parents[1]
-    parser = argparse.ArgumentParser(description="Create and execute the activation notebook.")
+    parser = argparse.ArgumentParser(description="Create and execute the VPN activation notebook.")
     parser.add_argument("--input-dir", type=Path, default=project_root / "data" / "generated")
     parser.add_argument(
-        "--output", type=Path, default=project_root / "notebooks" / "01_activation_starter.ipynb"
+        "--output",
+        type=Path,
+        default=project_root / "notebooks" / "01_vpn_activation.ipynb",
+    )
+    parser.add_argument(
+        "--html-output",
+        type=Path,
+        default=project_root / "notebooks" / "01_vpn_activation.html",
     )
     parser.add_argument("--no-execute", action="store_true")
     return parser.parse_args()
@@ -26,8 +33,13 @@ def _rate_text(value: float) -> str:
 
 
 def build_notebook(input_dir: Path) -> nbf.NotebookNode:
-    frame = pd.DataFrame(activation_records(input_dir))
+    frame = pd.DataFrame(user_activation_records(input_dir))
     activation_rate = float(frame["activated_7d"].mean())
+    conversion_by_activation = frame.groupby("activated_7d")["converted_at"].apply(
+        lambda values: values.notna().mean()
+    )
+    activated_conversion = float(conversion_by_activation.get(True, float("nan")))
+    nonactivated_conversion = float(conversion_by_activation.get(False, float("nan")))
     experiment = frame.dropna(subset=["experiment_variant"])
     experiment_rates = experiment.groupby("experiment_variant")["activated_7d"].mean()
     control_rate = float(experiment_rates.get("control", float("nan")))
@@ -41,35 +53,37 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
     }
     notebook["cells"] = [
         nbf.v4.new_markdown_cell(
-            "# Диагностика 7-дневной активации AI SaaS\n\n"
-            "Воспроизводимый стартовый анализ на полностью синтетических данных. "
-            "Единое определение метрики хранится в `docs/metric_dictionary.md`, "
-            "а SQL-реализация — в `sql/marts/001_mart_workspace_activation.sql`."
+            "# Диагностика 7-дневной активации подписочного VPN\n\n"
+            "Воспроизводимый стартовый анализ полностью синтетического сервиса `ShieldRoute`. "
+            "Metric contract хранится в `docs/metric_dictionary.md`, SQL-реализация — в "
+            "`sql/marts/001_mart_user_activation.sql`."
         ),
         nbf.v4.new_markdown_cell(
             "## tl;dr\n\n"
-            f"- В выборке **{len(frame):,}** eligible workspaces; 7-дневная активация — "
+            f"- В выборке **{len(frame):,}** eligible users; 7-day activation — "
             f"**{_rate_text(activation_rate)}**.\n"
-            f"- В синтетическом эксперименте: control **{_rate_text(control_rate)}**, "
-            f"treatment **{_rate_text(treatment_rate)}**, разница **{lift_pp:+.1f} п.п.**\n"
-            "- Эти числа демонстрируют аналитический метод и не являются результатами реальной компании."
+            f"- В synthetic experiment: control **{_rate_text(control_rate)}**, treatment "
+            f"**{_rate_text(treatment_rate)}**, разница **{lift_pp:+.1f} п.п.**\n"
+            f"- Paid conversion: activated **{_rate_text(activated_conversion)}**, non-activated "
+            f"**{_rate_text(nonactivated_conversion)}**. Связь описательная, не причинная."
         ),
         nbf.v4.new_markdown_cell(
             "## Context & Methods\n\n"
-            "**Решение:** определить главный провал onboarding funnel и проверить, связан ли guided onboarding "
-            "с ростом активации. Единица анализа — workspace.\n\n"
-            "**Каноническая активация:** knowledge base подключена, teammate приглашён и не менее трёх "
-            "AI-подсказок принято в течение 7 дней; первое принятие происходит после setup milestones.\n\n"
-            "Сравнение experiment variants ниже описательное: данные синтетические, а статистический вывод "
-            "будет добавлен после проверки SRM и доверительных интервалов."
+            "**Решение:** определить главный провал между регистрацией, установкой приложения и "
+            "регулярным VPN-использованием; оценить smart-location onboarding. Единица анализа — user.\n\n"
+            "**Каноническая активация:** приложение установлено; минимум 3 успешных VPN-сессии "
+            "минимум в 2 UTC-дня; не менее 30 protected minutes в первые 7 дней.\n\n"
+            "### Key Assumptions\n\n"
+            "Порог 30 минут — портфолио-допущение. В production его нужно калибровать по retention. "
+            "Все наблюдаемые эффекты и числа созданы генератором и не относятся к реальной компании."
         ),
         nbf.v4.new_code_cell(
             "import json\n"
             "from pathlib import Path\n\n"
             "import matplotlib.pyplot as plt\n"
             "import pandas as pd\n\n"
-            "from ai_saas_analytics.data_quality import validate_dataset\n"
-            "from ai_saas_analytics.metrics import activation_records\n\n"
+            "from vpn_analytics.data_quality import validate_dataset\n"
+            "from vpn_analytics.metrics import user_activation_records\n\n"
             'ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()\n'
             'DATA_DIR = ROOT / "data" / "generated"\n'
             'plt.style.use("seaborn-v0_8-whitegrid")'
@@ -88,52 +102,64 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
             "display(quality)"
         ),
         nbf.v4.new_code_cell(
-            "activation = pd.DataFrame(activation_records(DATA_DIR))\nactivation.head(3)"
+            "activation = pd.DataFrame(user_activation_records(DATA_DIR))\nactivation.head(3)"
         ),
         nbf.v4.new_markdown_cell("## Results"),
         nbf.v4.new_code_cell(
             "funnel = pd.Series(\n"
             "    {\n"
-            '        "Eligible workspaces": len(activation),\n'
-            '        "KB connected <7d": activation["knowledge_base_connected_at"].notna().sum(),\n'
-            '        "Teammate invited <7d": activation["teammate_invited_at"].notna().sum(),\n'
-            '        "3+ accepted suggestions <7d": activation["accepted_suggestions_7d"].ge(3).sum(),\n'
+            '        "Eligible users": len(activation),\n'
+            '        "App installed <7d": activation["app_installed_at"].notna().sum(),\n'
+            '        "First successful connection": activation["first_successful_connection_at"].notna().sum(),\n'
+            '        "3+ successful sessions": activation["successful_sessions_7d"].ge(3).sum(),\n'
+            '        "2+ active days": activation["active_days_7d"].ge(2).sum(),\n'
+            '        "30+ protected minutes": activation["protected_minutes_7d"].ge(30).sum(),\n'
             '        "Activated <7d": activation["activated_7d"].sum(),\n'
             "    },\n"
-            '    name="workspaces",\n'
+            '    name="users",\n'
             ").to_frame()\n"
-            'funnel["share_of_eligible"] = funnel["workspaces"] / len(activation)\n'
+            'funnel["share_of_eligible"] = funnel["users"] / len(activation)\n'
             "funnel"
         ),
         nbf.v4.new_code_cell(
-            'ax = funnel["share_of_eligible"].sort_values().plot.barh(figsize=(8, 4), color="#3B82F6")\n'
-            'ax.set(title="7-day onboarding funnel", xlabel="Share of eligible workspaces", ylabel="")\n'
+            'ax = funnel["share_of_eligible"].sort_values().plot.barh(figsize=(8, 5), color="#2563EB")\n'
+            'ax.set(title="VPN 7-day activation funnel", xlabel="Share of eligible users", ylabel="")\n'
             'ax.xaxis.set_major_formatter(lambda value, _: f"{value:.0%}")\n'
             "plt.tight_layout();"
         ),
         nbf.v4.new_code_cell(
             "experiment = (\n"
             '    activation.dropna(subset=["experiment_variant"])\n'
-            '    .groupby("experiment_variant")["activated_7d"]\n'
-            '    .agg(workspaces="size", activated="sum", activation_rate="mean")\n'
+            '    .groupby("experiment_variant")\n'
+            "    .agg(\n"
+            '        users=("user_id", "size"),\n'
+            '        activation_rate=("activated_7d", "mean"),\n'
+            '        mean_failure_rate=("failure_rate_7d", "mean"),\n'
+            '        median_user_p95_ms=("p95_connection_time_ms", "median"),\n'
+            "    )\n"
             ")\n"
             "experiment"
         ),
         nbf.v4.new_code_cell(
             "segments = (\n"
-            '    activation.groupby("acquisition_channel")["activated_7d"]\n'
-            '    .agg(workspaces="size", activation_rate="mean")\n'
+            '    activation.groupby("signup_platform")\n'
+            "    .agg(\n"
+            '        users=("user_id", "size"),\n'
+            '        activation_rate=("activated_7d", "mean"),\n'
+            '        paid_conversion=("converted_at", lambda values: values.notna().mean()),\n'
+            "    )\n"
             '    .sort_values("activation_rate", ascending=False)\n'
             ")\n"
             "segments"
         ),
         nbf.v4.new_markdown_cell(
             "## Takeaways\n\n"
-            f"1. Baseline activation равна **{_rate_text(activation_rate)}** — это стартовая точка, а не KPI реальной компании.\n"
-            f"2. В сгенерированном сценарии treatment выше control на **{lift_pp:+.1f} п.п.**; "
-            "перед продуктовым решением нужны SRM, доверительный интервал и guardrails.\n"
-            "3. Следующий аналитический шаг — локализовать выпадение между knowledge-base setup, teammate invite "
-            "и первым принятием AI-подсказки, затем перенести проверенную витрину в DataLens."
+            f"1. Synthetic baseline activation — **{_rate_text(activation_rate)}**.\n"
+            f"2. Treatment выше control на **{lift_pp:+.1f} п.п.**; перед решением нужны SRM, "
+            "confidence interval и проверка connection-quality guardrails.\n"
+            f"3. Activated users конвертируются в оплату чаще ({_rate_text(activated_conversion)} "
+            f"против {_rate_text(nonactivated_conversion)}), но это не доказывает причинность.\n"
+            "4. Следующий шаг — retention cohorts и server-level unit economics, затем DataLens."
         ),
     ]
     return notebook
@@ -147,16 +173,27 @@ def main() -> int:
     if not args.no_execute:
         from nbclient import NotebookClient
 
-        executed = NotebookClient(
+        notebook = NotebookClient(
             notebook,
             timeout=180,
             kernel_name="python3",
             resources={"metadata": {"path": str(args.output.parent)}},
         ).execute()
-        nbf.write(executed, args.output)
+        nbf.write(notebook, args.output)
+
+        from nbconvert import HTMLExporter
+
+        html_exporter = HTMLExporter(template_name="lab")
+        html_body, _ = html_exporter.from_notebook_node(notebook)
+        args.html_output.write_text(html_body, encoding="utf-8")
     print(
         json.dumps(
-            {"notebook": str(args.output), "executed": not args.no_execute}, ensure_ascii=False
+            {
+                "notebook": str(args.output),
+                "html": str(args.html_output) if not args.no_execute else None,
+                "executed": not args.no_execute,
+            },
+            ensure_ascii=False,
         )
     )
     return 0

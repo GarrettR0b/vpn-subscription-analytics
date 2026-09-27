@@ -12,7 +12,7 @@ class GeneratorSettings:
     start_date: date
     observation_days: int
     experiment_start_day: int
-    workspace_count: int
+    user_count: int
 
 
 def project_root() -> Path:
@@ -38,5 +38,5 @@ def load_generator_settings(
         start_date=date.fromisoformat(project["start_date"]),
         observation_days=int(project["observation_days"]),
         experiment_start_day=int(project["experiment_start_day"]),
-        workspace_count=int(profiles[profile]["workspaces"]),
+        user_count=int(profiles[profile]["users"]),
     )

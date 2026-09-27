@@ -1,46 +1,51 @@
 # Metric dictionary
 
-## Eligible workspace
+## Eligible user
 
-Новый trial workspace, созданный не internal/test actor. В synthetic MVP все строки
-`core.workspaces` являются eligible; поле `is_internal` оставлено для явного фильтра.
+Новый пользователь, который не является internal/test actor и имеет полное семидневное
+окно наблюдения. Генератор создаёт пользователей минимум за 14 дней до конца периода.
 
-## Knowledge base connected
+## Successful VPN session
 
-Первое событие `knowledge_base_connected` в `core.product_events`.
+Строка `core.vpn_sessions` со `connection_status = 'success'`, непустым `ended_at` и
+положительной длительностью. Неуспешные попытки остаются в denominator quality metrics.
 
-## Teammate invited
-
-Первое событие `teammate_invited`. Owner не считается teammate.
-
-## Accepted AI suggestion
-
-Строка `core.ai_suggestions` с непустым `accepted_at`. Отменённые или сгенерированные,
-но не принятые suggestions не входят в numerator.
-
-## 7-day activation rate
+## 7-day activation — primary KPI
 
 ```text
-activated eligible workspaces / all eligible new workspaces
+activated eligible users / all eligible new users
 ```
 
-Workspace активирован, если до `created_at + 7 days`:
+Пользователь активирован, если до `registered_at + 7 days`:
 
-- подключена knowledge base;
-- приглашён teammate;
-- принято не менее трёх suggestions;
-- первое accepted suggestion произошло не раньше двух setup-событий.
+- приложение установлено;
+- произошло минимум три успешных VPN-сессии;
+- успешные сессии были минимум в два разных UTC-дня;
+- суммарное защищённое время составило не менее 30 минут.
 
-Решение: найти step с наибольшим addressable drop-off и оценить guided onboarding.
+Метрика отражает не разовый технический тест, а повторное получение ценности. Порог
+является портфолио-допущением и в реальной компании должен калиброваться по retention.
 
-## Time to first value
+## Driver metrics
 
-Количество часов от создания workspace до первого accepted suggestion. Метрика считается
-только для workspace с принятым suggestion и показывается вместе с sample size.
+- install rate within 24h;
+- first connection success rate within 24h;
+- median time to first successful connection;
+- share with a successful connection on 2+ days in week 1.
 
-## Guardrails для следующих этапов
+## Guardrails
 
-- ticket reopen rate ≤7 days;
-- p95 AI latency;
-- inference cost per activated workspace;
-- 14-day retained usage.
+- connection failure rate;
+- p95 successful connection time, ms;
+- forced disconnect rate;
+- infrastructure cost per protected GB (следующий этап).
+
+## Paid conversion
+
+Доля eligible users с непустым `converted_at` в `core.subscriptions`. Показывается по
+activation cohort, plan и acquisition channel; не считается причинным эффектом activation.
+
+## Experiment
+
+`smart_location_onboarding_v1` сравнивает control и treatment на уровне user по ITT.
+Primary KPI — 7-day activation; guardrails — failure rate и p95 connection time.

@@ -2,29 +2,27 @@
 
 ## Core grains
 
-| Таблица | Grain | Primary key |
+| Table | Grain | Primary key |
 |---|---|---|
-| `core.workspaces` | одна строка на workspace | `workspace_id` |
-| `core.users` | одна строка на user | `user_id` |
-| `core.subscriptions` | одна строка на trial/subscription lifecycle MVP | `subscription_id` |
-| `core.product_events` | одна строка на событие | `event_id` |
-| `core.tickets` | одна строка на support ticket | `ticket_id` |
-| `core.ai_suggestions` | одна строка на AI suggestion | `suggestion_id` |
-| `core.experiment_assignments` | одна строка на experiment × workspace | составной PK |
+| `core.users` | одна строка на зарегистрированного пользователя | `user_id` |
+| `core.devices` | одна строка на устройство пользователя | `device_id` |
+| `core.subscriptions` | одна строка на подписку MVP | `subscription_id` |
+| `core.product_events` | одна строка на product event | `event_id` |
+| `core.vpn_servers` | одна строка на VPN-сервер | `server_id` |
+| `core.vpn_sessions` | одна строка на попытку VPN-подключения | `vpn_session_id` |
+| `core.experiment_assignments` | одна строка на experiment × user | составной PK |
 
-## Week 1 analytical grain
+## Analytics grain
 
-`analytics.mart_workspace_activation` содержит одну строку на workspace. В ней хранятся
-первые timestamps onboarding, принятые suggestions в days 0–7, activation flag и
-time-to-first-value.
+`analytics.mart_user_activation` содержит одну строку на eligible user: onboarding
+milestones, успешные сессии в days 0–7, active days, protected minutes, time-to-value,
+activation flag и experiment variant.
 
-## Связи
+## Relationships
 
 ```text
-workspaces 1 ── * users
-workspaces 1 ── * product_events
-workspaces 1 ── * tickets 1 ── * ai_suggestions
-workspaces 1 ── 1 subscriptions (MVP)
-workspaces 1 ── * experiment_assignments
-users      1 ── * product_events / ai_suggestions
+users 1 ── * devices 1 ── * vpn_sessions * ── 1 vpn_servers
+users 1 ── 1 subscriptions
+users 1 ── * product_events
+users 1 ── * experiment_assignments
 ```

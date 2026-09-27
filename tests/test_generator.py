@@ -4,9 +4,9 @@ import hashlib
 from datetime import date
 from pathlib import Path
 
-from ai_saas_analytics.data_quality import validate_dataset
-from ai_saas_analytics.generator import generate_rows, write_rows
-from ai_saas_analytics.settings import GeneratorSettings
+from vpn_analytics.data_quality import validate_dataset
+from vpn_analytics.generator import generate_rows, write_rows
+from vpn_analytics.settings import GeneratorSettings
 
 
 def _settings() -> GeneratorSettings:
@@ -15,7 +15,7 @@ def _settings() -> GeneratorSettings:
         start_date=date(2026, 1, 1),
         observation_days=180,
         experiment_start_day=60,
-        workspace_count=120,
+        user_count=150,
     )
 
 

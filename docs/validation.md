@@ -8,34 +8,34 @@
 
 | Table | Rows |
 |---|---:|
-| workspaces | 600 |
-| users | 927 |
-| subscriptions | 600 |
-| product_events | 12,162 |
-| tickets | 3,592 |
-| ai_suggestions | 3,592 |
-| experiment_assignments | 365 |
+| users | 800 |
+| devices | 727 |
+| subscriptions | 800 |
+| product_events | 10,185 |
+| vpn_servers | 24 |
+| vpn_sessions | 5,305 |
+| experiment_assignments | 501 |
 
 ## Checks
 
-- 17 Python data-quality checks: all `PASS`;
+- 19 Python data-quality checks: all `PASS`;
 - 4 automated tests: all passed;
-- Ruff lint: passed;
+- Ruff lint and format: passed;
 - notebook: 7 code cells executed, no error outputs;
 - PostgreSQL container: healthy;
-- 6 SQL data-quality checks: all `PASS`.
+- 8 SQL data-quality checks: all `PASS`;
+- row-level Python ↔ PostgreSQL reconciliation: 0 key and 0 metric mismatches.
 
-## Cross-layer reconciliation
-
-`analytics.mart_workspace_activation` and the independent Python implementation returned
-the same result:
+## Cross-layer results
 
 | Metric | PostgreSQL | Python |
 |---|---:|---:|
-| eligible workspaces | 592 | 592 |
-| activated workspaces | 191 | 191 |
-| activation rate | 32.26% | 32.26% |
-| control activation | 29.69% | 29.69% |
-| treatment activation | 39.88% | 39.88% |
+| eligible users | 791 | 791 |
+| activated users | 438 | 438 |
+| activation rate | 55.37% | 55.37% |
+| control activation | 53.23% | 53.23% |
+| treatment activation | 65.97% | 65.97% |
+| activated paid conversion | 71.00% | 71.00% |
+| non-activated paid conversion | 16.15% | 16.15% |
 
 Все значения являются результатом симуляции и используются только для демонстрации метода.

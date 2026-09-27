@@ -1,7 +1,7 @@
-# Аналитическая система AI SaaS: витрины данных, продуктовые метрики и BI
+# Аналитическая система VPN-сервиса: подписки, активация и качество соединений
 
-Портфолио-проект Data/BI Analyst: от синтетических событий B2B SaaS до PostgreSQL-витрин,
-воспроизводимого Python-анализа, A/B-теста и Yandex DataLens.
+Портфолио-проект Data/BI Analyst: от синтетических событий подписочного VPN-сервиса до
+PostgreSQL-витрин, воспроизводимого Python-анализа, A/B-теста и Yandex DataLens.
 
 > Проект является обезличенной реконструкцией типа коммерческой аналитической задачи,
 > над которой автор работал профессионально. Названия, данные, параметры и результаты
@@ -9,24 +9,25 @@
 
 ## Business problem
 
-Небольшой сервис `AnswerFlow` помогает командам поддержки создавать ответы клиентам с
-помощью AI и базы знаний. Регистрации растут, но не все workspace доходят до регулярной
-ценности, а inference cost может расти быстрее подписочной выручки.
+Синтетический сервис `ShieldRoute` продаёт месячные и годовые VPN-подписки. Пользователи
+регистрируются, устанавливают приложение, выбирают сервер и запускают защищённые сессии.
+Не все новые пользователи получают ценность в первые дни, а рост трафика увеличивает
+инфраструктурные расходы.
 
 Главный вопрос:
 
-> Какие действия в первые 7 дней приводят workspace к устойчивой ценности и как повысить
-> activation, не ухудшив качество поддержки и unit economics?
+> Какие действия в первые 7 дней приводят пользователя к регулярному использованию VPN и
+> конверсии в оплату, не ухудшая качество соединения и unit economics?
 
-## Что уже реализовано
+## Что реализовано
 
-- контракт бизнес-задачи и метрик;
-- PostgreSQL core model;
-- детерминированный генератор связанных CSV;
+- контракт бизнес-задачи, KPI и guardrails;
+- PostgreSQL core model для пользователей, устройств, серверов, сессий и подписок;
+- детерминированный генератор связанных synthetic CSV;
 - Python loader для PostgreSQL;
-- первая аналитическая витрина `analytics.mart_workspace_activation`;
+- витрина `analytics.mart_user_activation`;
 - SQL- и Python-проверки качества данных;
-- starter notebook для проверки данных и activation;
+- выполненный notebook и автономная HTML-версия;
 - Docker Compose для локальной базы.
 
 ## Быстрый старт
@@ -36,11 +37,11 @@ py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[analysis,dev]"
 
-python -m ai_saas_analytics.generator --profile small --sample-dir data/samples
-python -m ai_saas_analytics.data_quality --input-dir data/generated
+python -m vpn_analytics.generator --profile small --sample-dir data/samples
+python -m vpn_analytics.data_quality --input-dir data/generated
 
 docker compose up -d postgres
-python -m ai_saas_analytics.loader --input-dir data/generated
+python -m vpn_analytics.loader --input-dir data/generated
 python scripts/create_starter_notebook.py
 python -m pytest
 ```
@@ -48,53 +49,50 @@ python -m pytest
 Подключение PostgreSQL по умолчанию:
 
 ```text
-postgresql://analytics:analytics@localhost:5433/ai_saas
+postgresql://analytics:analytics@localhost:5433/vpn_analytics
 ```
 
 ## Week 1 vertical slice
 
 ```text
-Python generator
-    ↓ CSV
-PostgreSQL core tables
-    ↓ SQL business logic
-analytics.mart_workspace_activation
-    ↓
-Python notebook / будущий DataLens
+Python generator → CSV → PostgreSQL core tables
+                 → analytics.mart_user_activation
+                 → Python notebook / будущий DataLens
 ```
 
 ## Metric contract
 
-`7-day activation` достигается, если workspace в первые семь дней:
+Пользователь достигает `7-day activation`, если в первые семь дней:
 
-1. подключил базу знаний;
-2. пригласил как минимум одного teammate;
-3. принял минимум три AI suggestions;
-4. первое принятие произошло после подключения базы и приглашения teammate.
+1. приложение установлено и произошло успешное VPN-подключение;
+2. выполнено не менее трёх успешных VPN-сессий;
+3. сессии проходили минимум в два разных календарных дня;
+4. суммарное время под защитой составило не менее 30 минут.
 
-Определения и ограничения: [docs/metric_dictionary.md](docs/metric_dictionary.md).
+Определения и guardrails: [docs/metric_dictionary.md](docs/metric_dictionary.md).
 
-Результат последнего воспроизводимого прогона: [docs/validation.md](docs/validation.md).
+Последний воспроизводимый прогон: [docs/validation.md](docs/validation.md).
 
 ## Структура
 
 ```text
 config/       параметры генерации
 data/         generated data и небольшие samples
-docs/         бизнес-контекст, модель данных и метрики
-notebooks/    воспроизводимый анализ
+docs/         бизнес-контекст, модель данных и KPI
+notebooks/    воспроизводимый анализ activation funnel
 scripts/      локальные команды подготовки артефактов
 sql/ddl/      схема PostgreSQL
 sql/marts/    аналитические витрины
 sql/checks/   проверки качества
-src/          генератор, loader и Python QA
+src/          генератор, loader, метрики и Python QA
 tests/        автоматические тесты
-dashboard/    спецификация и screenshots DataLens
+dashboard/    спецификация DataLens и offline screenshots
+excel/        будущая модель unit economics
 ```
 
 ## Ограничения
 
 - Все числа являются результатом симуляции, а не показателями реальной компании.
-- Acceptance и reopen rate — proxies качества ответа.
-- Наблюдательные связи между onboarding и retention не доказывают причинность.
-- Эффект эксперимента будет анализироваться отдельно по ITT после реализации Week 3.
+- Успешная VPN-сессия — proxy полученной ценности, но не гарантия удовлетворённости.
+- Наблюдательная связь между активацией и оплатой не доказывает причинность.
+- Экспериментальные результаты предназначены для демонстрации ITT-подхода.

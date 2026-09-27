@@ -1,36 +1,28 @@
 # Business problem
 
-## Контекст
+## Product
 
-`AnswerFlow` — синтетический B2B SaaS для команд клиентской поддержки. Продукт создаёт AI
-suggestions на основе базы знаний компании. Единица принятия продуктового решения —
-`workspace`, потому что подписка, onboarding и rollout происходят на уровне команды.
+`ShieldRoute` — синтетический B2C VPN-сервис с trial, месячными и годовыми подписками.
+Единица продуктового решения — `user`: именно пользователь регистрируется, подключает
+устройства, создаёт VPN-сессии и оплачивает подписку.
 
-## Решение, которое должна поддержать аналитика
+## Decision
 
-Product Manager должен выбрать первый участок onboarding для улучшения и определить,
-можно ли масштабировать guided onboarding без вреда качеству и unit economics.
+Product manager должен понять, где новые пользователи выпадают между регистрацией,
+установкой приложения и регулярным защищённым использованием. Первая гипотеза — smart
+location onboarding, автоматически предлагающий подходящий сервер и протокол, повышает
+7-day activation.
 
-## Главный вопрос
+## Audience
 
-Какие действия days 0–7 связаны с формированием повторяемой командной ценности и где
-находится addressable drop-off?
+- Product Manager — onboarding и trial conversion;
+- Growth — acquisition channels и paid conversion;
+- Operations — connection failures, latency и server load;
+- Finance — выручка и инфраструктурная себестоимость;
+- Data/BI — единые определения, витрины и контроль качества.
 
-## Аудитория
+## Week 1 scope
 
-- Product Manager — activation и experiment decision;
-- Data/BI Lead — definitions, marts и качество данных;
-- Finance — inference cost и contribution margin;
-- Customer Success — сегменты с низкой team adoption.
-
-## Scope Week 1
-
-- core entities и event taxonomy;
-- deterministic synthetic data;
-- activation metric contract;
-- activation mart;
-- data-quality checks;
-- starter notebook.
-
-Retention, unit economics, полноценный эксперимент и DataLens следуют после устойчивого
-vertical slice.
+Первый вертикальный срез отвечает на один вопрос: можно ли воспроизводимо рассчитать
+7-day activation одинаково в Python и PostgreSQL. Retention, unit economics, полноценный
+experiment readout и DataLens следуют после устойчивого базового слоя.

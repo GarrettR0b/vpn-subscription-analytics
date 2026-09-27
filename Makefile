@@ -4,10 +4,10 @@ setup:
 	python -m pip install -e ".[analysis,dev]"
 
 data:
-	python -m ai_saas_analytics.generator --profile small
+	python -m vpn_analytics.generator --profile small
 
 check:
-	python -m ai_saas_analytics.data_quality --input-dir data/generated
+	python -m vpn_analytics.data_quality --input-dir data/generated
 
 db-up:
 	docker compose up -d postgres
@@ -16,7 +16,7 @@ db-down:
 	docker compose down
 
 load:
-	python -m ai_saas_analytics.loader --input-dir data/generated
+	python -m vpn_analytics.loader --input-dir data/generated
 
 test:
 	python -m pytest

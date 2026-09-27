@@ -5,10 +5,10 @@ observation_days = 180
 experiment_start_day = 60
 
 [profiles.smoke]
-workspaces = 40
+users = 50
 
 [profiles.small]
-workspaces = 600
+users = 800
 
 [profiles.portfolio]
-workspaces = 12000
+users = 15000

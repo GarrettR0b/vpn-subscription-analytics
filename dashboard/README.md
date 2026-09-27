@@ -1,17 +1,17 @@
-# Yandex DataLens
+# DataLens dashboard contract
 
-DataLens будет подключён к аналитическим витринам PostgreSQL, а не к сырым событиям.
+DataLens подключается к PostgreSQL analytics marts, а не к сырым CSV.
 
 Week 1 source:
 
-- `analytics.mart_workspace_activation`
+- `analytics.mart_user_activation`.
 
-Следующие витрины появятся по мере проекта:
+Следующие витрины:
 
-- `analytics.mart_weekly_workspace_value`;
-- `analytics.mart_retention_cohorts`;
-- `analytics.mart_workspace_unit_economics`;
+- `analytics.mart_daily_connection_quality`;
+- `analytics.mart_subscription_retention`;
+- `analytics.mart_server_unit_economics`;
 - `analytics.mart_experiment_readout`.
 
-Публичная версия должна использовать только synthetic data. В репозитории обязательно
-сохраняются screenshots и описание фильтров как offline backup.
+Публичная версия использует только synthetic data. Screenshots и описание фильтров
+сохраняются как offline backup.

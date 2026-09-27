@@ -10,34 +10,37 @@ from .generator import TABLE_FIELDS
 from .settings import project_root
 
 LOAD_ORDER = (
-    "workspaces",
     "users",
+    "devices",
     "subscriptions",
     "product_events",
-    "tickets",
-    "ai_suggestions",
+    "vpn_servers",
+    "vpn_sessions",
     "experiment_assignments",
 )
 
 
 def _arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
     root = project_root()
-    parser = argparse.ArgumentParser(description="Load generated CSV files into PostgreSQL.")
+    parser = argparse.ArgumentParser(description="Load generated VPN CSV files into PostgreSQL.")
     parser.add_argument("--input-dir", type=Path, default=root / "data" / "generated")
     parser.add_argument(
         "--database-url",
         default=os.environ.get(
-            "DATABASE_URL", "postgresql://analytics:analytics@localhost:5433/ai_saas"
+            "DATABASE_URL",
+            "postgresql://analytics:analytics@localhost:5433/vpn_analytics",
         ),
     )
     parser.add_argument("--schema-sql", type=Path, default=root / "sql" / "ddl" / "001_schema.sql")
     parser.add_argument(
         "--mart-sql",
         type=Path,
-        default=root / "sql" / "marts" / "001_mart_workspace_activation.sql",
+        default=root / "sql" / "marts" / "001_mart_user_activation.sql",
     )
     parser.add_argument(
-        "--checks-sql", type=Path, default=root / "sql" / "checks" / "001_data_quality.sql"
+        "--checks-sql",
+        type=Path,
+        default=root / "sql" / "checks" / "001_data_quality.sql",
     )
     return parser.parse_args(argv)
 
@@ -64,8 +67,8 @@ def main(argv: Iterable[str] | None = None) -> int:
             cursor.execute(args.schema_sql.read_text(encoding="utf-8"))
             cursor.execute(
                 "TRUNCATE TABLE "
-                "core.experiment_assignments, core.ai_suggestions, core.tickets, "
-                "core.product_events, core.subscriptions, core.users, core.workspaces CASCADE"
+                "core.experiment_assignments, core.vpn_sessions, core.product_events, "
+                "core.subscriptions, core.devices, core.vpn_servers, core.users CASCADE"
             )
             for table_name in LOAD_ORDER:
                 fields = TABLE_FIELDS[table_name]
@@ -96,7 +99,7 @@ def main(argv: Iterable[str] | None = None) -> int:
                 print("Load rolled back because a database check failed.")
                 return 1
         connection.commit()
-    print("PostgreSQL load and activation mart refresh completed.")
+    print("PostgreSQL load and user activation mart refresh completed.")
     return 0
 
 

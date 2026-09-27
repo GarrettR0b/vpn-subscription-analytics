@@ -1,13 +1,13 @@
 # Notebooks
 
-`01_activation_starter.ipynb` is generated from validated CSV files and executed top-to-bottom.
-`01_activation_starter.html` is the portable offline rendering for reviewers without Jupyter.
+`01_vpn_activation.ipynb` — выполненный сверху вниз анализ onboarding и 7-day activation.
+`01_vpn_activation.html` — автономная версия для просмотра без Jupyter.
 
-Rebuild it after regenerating data:
+Пересборка после генерации данных:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\create_starter_notebook.py
 ```
 
-The notebook is a reproducible analytical companion. Production-facing metrics should be read
-from PostgreSQL marts rather than reimplemented ad hoc.
+Reader-facing метрики должны поступать из PostgreSQL marts; Python-реализация используется
+как независимая сверка SQL-контракта.
