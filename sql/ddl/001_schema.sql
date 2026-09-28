@@ -27,16 +27,30 @@ CREATE TABLE core.subscriptions (
     subscription_id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL UNIQUE REFERENCES core.users(user_id),
     sales_channel TEXT NOT NULL CHECK (sales_channel IN ('website', 'telegram_bot')),
-    plan TEXT NOT NULL CHECK (plan IN ('one_month', 'three_months', 'twelve_months')),
+    plan TEXT NOT NULL CHECK (plan IN ('basic', 'pro')),
+    onboarding_variant TEXT NOT NULL CHECK (
+        onboarding_variant IN ('not_enrolled', 'control', 'treatment')
+    ),
     purchased_at TIMESTAMPTZ NOT NULL,
     starts_at TIMESTAMPTZ NOT NULL,
     ends_at TIMESTAMPTZ,
     status TEXT NOT NULL CHECK (status IN ('active', 'expired')),
     auto_renew BOOLEAN NOT NULL,
     price_rub NUMERIC(10, 2) NOT NULL CHECK (price_rub > 0),
+    included_device_slots INTEGER NOT NULL CHECK (included_device_slots > 0),
+    extra_device_slots INTEGER NOT NULL CHECK (extra_device_slots BETWEEN 0 AND 3),
+    extra_device_price_rub NUMERIC(10, 2) NOT NULL CHECK (extra_device_price_rub = 30),
+    monthly_total_rub NUMERIC(10, 2) NOT NULL CHECK (monthly_total_rub > 0),
     currency TEXT NOT NULL CHECK (currency = 'RUB'),
     CHECK (starts_at >= purchased_at),
-    CHECK (ends_at IS NULL OR ends_at >= starts_at)
+    CHECK (ends_at IS NULL OR ends_at >= starts_at),
+    CHECK (
+        (plan = 'basic' AND price_rub = 130 AND included_device_slots = 6)
+        OR (plan = 'pro' AND price_rub = 220 AND included_device_slots = 8)
+    ),
+    CHECK (
+        monthly_total_rub = price_rub + extra_device_slots * extra_device_price_rub
+    )
 );
 
 CREATE TABLE core.subscription_links (

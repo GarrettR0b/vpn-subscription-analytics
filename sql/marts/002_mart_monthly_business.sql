@@ -27,18 +27,38 @@ subscription_metrics AS (
               AND (sub.ends_at IS NULL OR sub.ends_at >= m.month_start)
         ) AS active_paid_subscribers,
         COUNT(DISTINCT sub.user_id) FILTER (
+            WHERE sub.starts_at < m.month_end
+              AND (sub.ends_at IS NULL OR sub.ends_at >= m.month_end)
+        ) AS ending_paid_subscribers,
+        COUNT(DISTINCT sub.user_id) FILTER (
+            WHERE sub.plan = 'basic'
+              AND sub.starts_at < m.month_end
+              AND (sub.ends_at IS NULL OR sub.ends_at >= m.month_end)
+        ) AS basic_active_subscribers,
+        COUNT(DISTINCT sub.user_id) FILTER (
+            WHERE sub.plan = 'pro'
+              AND sub.starts_at < m.month_end
+              AND (sub.ends_at IS NULL OR sub.ends_at >= m.month_end)
+        ) AS pro_active_subscribers,
+        COUNT(DISTINCT sub.user_id) FILTER (
             WHERE sub.starts_at >= m.month_start AND sub.starts_at < m.month_end
         ) AS new_paid_users,
         COUNT(DISTINCT sub.user_id) FILTER (
             WHERE sub.ends_at >= m.month_start AND sub.ends_at < m.month_end
         ) AS churned_users,
-        COALESCE(SUM(
-            CASE sub.plan
-                WHEN 'one_month' THEN sub.price_rub
-                WHEN 'three_months' THEN sub.price_rub / 3.0
-                WHEN 'twelve_months' THEN sub.price_rub / 12.0
-            END
-        ) FILTER (
+        COALESCE(SUM(sub.price_rub) FILTER (
+            WHERE sub.starts_at < m.month_end
+              AND (sub.ends_at IS NULL OR sub.ends_at >= m.month_end)
+        ), 0) AS subscription_mrr_rub,
+        COALESCE(SUM(sub.extra_device_slots * sub.extra_device_price_rub) FILTER (
+            WHERE sub.starts_at < m.month_end
+              AND (sub.ends_at IS NULL OR sub.ends_at >= m.month_end)
+        ), 0) AS addon_mrr_rub,
+        COALESCE(SUM(sub.extra_device_slots) FILTER (
+            WHERE sub.starts_at < m.month_end
+              AND (sub.ends_at IS NULL OR sub.ends_at >= m.month_end)
+        ), 0) AS extra_device_slots,
+        COALESCE(SUM(sub.monthly_total_rub) FILTER (
             WHERE sub.starts_at < m.month_end
               AND (sub.ends_at IS NULL OR sub.ends_at >= m.month_end)
         ), 0) AS normalized_mrr_rub
@@ -85,11 +105,17 @@ payment_metrics AS (
 SELECT
     m.month_start::DATE AS month_start,
     sm.active_paid_subscribers,
+    sm.ending_paid_subscribers,
+    sm.basic_active_subscribers,
+    sm.pro_active_subscribers,
     se.monthly_active_paid_users,
     se.regular_paid_users,
     sm.new_paid_users,
     sm.churned_users,
     pay.cash_revenue_rub,
+    sm.subscription_mrr_rub,
+    sm.addon_mrr_rub,
+    sm.extra_device_slots,
     sm.normalized_mrr_rub,
     se.connection_failure_rate,
     se.traffic_gb

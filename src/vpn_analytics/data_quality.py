@@ -135,6 +135,48 @@ def validate_dataset(input_dir: Path) -> list[CheckResult]:
         invalid_subscription_status += subscription["status"] != expected_status
     results.append(CheckResult("valid_subscription_chronology", subscription_chronology_failures))
     results.append(CheckResult("subscription_status_matches_period", invalid_subscription_status))
+    results.append(
+        CheckResult(
+            "valid_plan_price_and_device_slots",
+            sum(
+                (
+                    row["plan"] == "basic"
+                    and (float(row["price_rub"]) != 130 or int(row["included_device_slots"]) != 6)
+                )
+                or (
+                    row["plan"] == "pro"
+                    and (float(row["price_rub"]) != 220 or int(row["included_device_slots"]) != 8)
+                )
+                or row["plan"] not in {"basic", "pro"}
+                or float(row["extra_device_price_rub"]) != 30
+                or int(row["extra_device_slots"]) not in range(4)
+                or float(row["monthly_total_rub"])
+                != float(row["price_rub"])
+                + int(row["extra_device_slots"]) * float(row["extra_device_price_rub"])
+                for row in tables["subscriptions"]
+            ),
+        )
+    )
+    period_start = _timestamp(periods[0]["period_start"]) if periods else None
+    results.append(
+        CheckResult(
+            "valid_experiment_assignment",
+            sum(
+                row["onboarding_variant"] not in {"not_enrolled", "control", "treatment"}
+                or (
+                    period_start is not None
+                    and (_timestamp(row["starts_at"]) or period_start) < period_start
+                    and row["onboarding_variant"] != "not_enrolled"
+                )
+                or (
+                    period_start is not None
+                    and (_timestamp(row["starts_at"]) or period_start) >= period_start
+                    and row["onboarding_variant"] not in {"control", "treatment"}
+                )
+                for row in tables["subscriptions"]
+            ),
+        )
+    )
 
     link_chronology_failures = 0
     invalid_happ_client = 0

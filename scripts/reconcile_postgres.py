@@ -6,7 +6,12 @@ from pathlib import Path
 
 import psycopg
 
-from vpn_analytics.metrics import monthly_business_records, subscriber_activation_records
+from vpn_analytics.metrics import (
+    activation_experiment_records,
+    monthly_business_records,
+    subscriber_activation_records,
+    subscriber_retention_records,
+)
 
 
 def _arguments() -> argparse.Namespace:
@@ -19,7 +24,7 @@ def _arguments() -> argparse.Namespace:
         "--database-url",
         default=os.environ.get(
             "DATABASE_URL",
-            "postgresql://analytics:analytics@localhost:5433/vpn_analytics",
+            "postgresql://analytics:analytics@127.0.0.1:5432/vpn_analytics",
         ),
     )
     return parser.parse_args()
@@ -31,6 +36,13 @@ def main() -> int:
         row["subscription_id"]: row for row in subscriber_activation_records(args.input_dir)
     }
     python_monthly = {row["month_start"]: row for row in monthly_business_records(args.input_dir)}
+    python_retention = {
+        (row["subscription_id"], row["activity_month"]): row
+        for row in subscriber_retention_records(args.input_dir)
+    }
+    python_experiment = {
+        row["subscription_id"]: row for row in activation_experiment_records(args.input_dir)
+    }
 
     with psycopg.connect(args.database_url) as connection:
         database_activation = {
@@ -52,12 +64,38 @@ def main() -> int:
                 "regular_paid_users": row[2],
                 "new_paid_users": row[3],
                 "churned_users": row[4],
-                "normalized_mrr_rub": float(row[5]),
+                "ending_paid_subscribers": row[5],
+                "basic_active_subscribers": row[6],
+                "pro_active_subscribers": row[7],
+                "addon_mrr_rub": float(row[8]),
+                "extra_device_slots": row[9],
+                "normalized_mrr_rub": float(row[10]),
             }
             for row in connection.execute(
                 "SELECT month_start, monthly_active_paid_users, regular_paid_users, "
-                "new_paid_users, churned_users, normalized_mrr_rub "
+                "new_paid_users, churned_users, ending_paid_subscribers, "
+                "basic_active_subscribers, pro_active_subscribers, addon_mrr_rub, extra_device_slots, "
+                "normalized_mrr_rub "
                 "FROM analytics.mart_monthly_business"
+            ).fetchall()
+        }
+        database_retention = {
+            (row[0], row[1].isoformat()): {
+                "month_number": row[2],
+                "successful_sessions": row[3],
+                "retained": row[4],
+            }
+            for row in connection.execute(
+                "SELECT subscription_id, activity_month, month_number, "
+                "successful_sessions, retained "
+                "FROM analytics.mart_subscriber_retention"
+            ).fetchall()
+        }
+        database_experiment = {
+            row[0]: {"onboarding_variant": row[1], "activated_7d": row[2]}
+            for row in connection.execute(
+                "SELECT subscription_id, onboarding_variant, activated_7d "
+                "FROM analytics.mart_activation_experiment"
             ).fetchall()
         }
 
@@ -85,15 +123,62 @@ def main() -> int:
             or python_row["regular_paid_users"] != database_row["regular_paid_users"]
             or python_row["new_paid_users"] != database_row["new_paid_users"]
             or python_row["churned_users"] != database_row["churned_users"]
+            or python_row["ending_paid_subscribers"] != database_row["ending_paid_subscribers"]
+            or python_row["basic_active_subscribers"] != database_row["basic_active_subscribers"]
+            or python_row["pro_active_subscribers"] != database_row["pro_active_subscribers"]
+            or abs(python_row["addon_mrr_rub"] - database_row["addon_mrr_rub"]) > 0.01
+            or python_row["extra_device_slots"] != database_row["extra_device_slots"]
             or abs(python_row["normalized_mrr_rub"] - database_row["normalized_mrr_rub"]) > 0.01
         ):
             monthly_values.append(month_start)
+
+    retention_keys = python_retention.keys() ^ database_retention.keys()
+    retention_values = []
+    for key in python_retention.keys() & database_retention.keys():
+        python_row = python_retention[key]
+        database_row = database_retention[key]
+        if (
+            python_row["month_number"] != database_row["month_number"]
+            or python_row["successful_sessions"] != database_row["successful_sessions"]
+            or python_row["retained"] != database_row["retained"]
+        ):
+            retention_values.append(key)
+
+    experiment_keys = python_experiment.keys() ^ database_experiment.keys()
+    experiment_values = []
+    for subscription_id in python_experiment.keys() & database_experiment.keys():
+        python_row = python_experiment[subscription_id]
+        database_row = database_experiment[subscription_id]
+        if (
+            python_row["onboarding_variant"] != database_row["onboarding_variant"]
+            or python_row["activated_7d"] != database_row["activated_7d"]
+        ):
+            experiment_values.append(subscription_id)
 
     print(f"Activation key mismatches: {len(activation_keys)}")
     print(f"Activation metric mismatches: {len(activation_values)}")
     print(f"Monthly key mismatches: {len(monthly_keys)}")
     print(f"Monthly metric mismatches: {len(monthly_values)}")
-    return 1 if activation_keys or activation_values or monthly_keys or monthly_values else 0
+    print(f"Retention key mismatches: {len(retention_keys)}")
+    print(f"Retention metric mismatches: {len(retention_values)}")
+    print(f"Experiment key mismatches: {len(experiment_keys)}")
+    print(f"Experiment metric mismatches: {len(experiment_values)}")
+    return (
+        1
+        if any(
+            (
+                activation_keys,
+                activation_values,
+                monthly_keys,
+                monthly_values,
+                retention_keys,
+                retention_values,
+                experiment_keys,
+                experiment_values,
+            )
+        )
+        else 0
+    )
 
 
 if __name__ == "__main__":

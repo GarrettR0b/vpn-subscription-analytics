@@ -17,6 +17,13 @@
 - `analytics.mart_subscriber_activation` — одна новая оплаченная подписка с полным
   семидневным окном наблюдения;
 - `analytics.mart_monthly_business` — один полный календарный месяц.
+- `analytics.mart_subscriber_retention` — одна eligible-подписка × один полный
+  календарный месяц жизни когорты.
+- `analytics.mart_activation_experiment` — одна eligible-подписка, случайно назначенная
+  в control или treatment постоплатного онбординга.
+
+`core.subscriptions.onboarding_variant` хранит назначение эксперимента: постоянные
+пользователи имеют `not_enrolled`, новые покупки — `control` или `treatment`.
 
 ## Relationships
 

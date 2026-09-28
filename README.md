@@ -10,12 +10,12 @@ Telegram-бот.
 
 ## Что реконструируется
 
-У сервиса нет собственного клиентского приложения. После оплаты пользователь получает
-персональную ссылку, добавляет её в HAPP и использует уже включённые в подписку
-прокси-серверы.
+У сервиса нет собственного клиентского приложения. До покупки доступен ограниченный
+free trial на 4 дня. После оплаты пользователь получает персональную ссылку, добавляет её
+в HAPP и использует уже включённые в подписку прокси-серверы.
 
 ```text
-сайт / Telegram-бот → оплата → ссылка подписки → HAPP → прокси-сессии
+сайт / Telegram-бот → free trial 4 дня → оплата → ссылка подписки → HAPP → прокси-сессии
                               ↓
                      PostgreSQL-витрины
                               ↓
@@ -29,13 +29,14 @@ Telegram-бот.
 ## Что реализовано
 
 - связанные таблицы пользователей, подписок, ссылок, платежей, прокси-серверов и сессий;
-- детерминированный генератор synthetic CSV и 23 Python-проверки качества;
-- PostgreSQL loader, ограничения целостности и 9 SQL-проверок;
-- витрины `analytics.mart_subscriber_activation` и
-  `analytics.mart_monthly_business`;
+- детерминированный генератор synthetic CSV и 25 Python-проверок качества;
+- PostgreSQL loader, ограничения целостности и 14 SQL-проверок;
+- витрины `analytics.mart_subscriber_activation`, `analytics.mart_monthly_business`,
+  `analytics.mart_subscriber_retention` и `analytics.mart_activation_experiment`;
 - сверка Python ↔ PostgreSQL на уровне строк и метрик;
-- выполненный notebook и автономный HTML-отчёт;
-- Docker Compose для локальной базы.
+- выполненные notebooks, автономные HTML-отчёты и интерактивный дашборд с вкладками
+  Business Overview, Activation, Retention и Experiment;
+- PostgreSQL 18 для локальной базы; Docker Compose остаётся запасным вариантом.
 
 ## Быстрый старт
 
@@ -47,7 +48,12 @@ python -m pip install -e ".[analysis,dev]"
 .\scripts\run_week1.ps1 -Profile small
 ```
 
-PostgreSQL: `postgresql://analytics:analytics@localhost:5433/vpn_analytics`.
+По умолчанию проект использует установленный PostgreSQL:
+`postgresql://analytics:analytics@127.0.0.1:5432/vpn_analytics`.
+Для воспроизводимых календарных витрин база и роль `analytics` должны использовать UTC.
+
+Docker Compose остаётся запасным вариантом на порту `5433`; для него перед запуском
+задайте соответствующий `DATABASE_URL`.
 
 ## Ключевые определения
 
@@ -72,7 +78,7 @@ scripts/      сквозной запуск и сверка
 sql/          DDL, витрины и SQL-проверки
 src/          генератор, loader, метрики и Python QA
 tests/        автоматические проверки
-dashboard/    контракт будущего BI-слоя
+dashboard/    готовый четырёхстраничный дашборд по PostgreSQL-витринам
 ```
 
 Все выводы описывают симуляцию и не являются production-показателями реальной компании.

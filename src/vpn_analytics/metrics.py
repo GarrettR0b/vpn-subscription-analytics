@@ -5,9 +5,8 @@ import math
 from calendar import monthrange
 from datetime import datetime, timedelta
 from pathlib import Path
+from statistics import NormalDist
 from typing import Any
-
-from .generator import PLAN_MONTHS
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:
@@ -117,7 +116,12 @@ def subscriber_activation_records(input_dir: Path) -> list[dict[str, Any]]:
                 "signup_source": user["signup_source"],
                 "sales_channel": subscription["sales_channel"],
                 "plan": subscription["plan"],
+                "onboarding_variant": subscription["onboarding_variant"],
                 "price_rub": float(subscription["price_rub"]),
+                "included_device_slots": int(subscription["included_device_slots"]),
+                "extra_device_slots": int(subscription["extra_device_slots"]),
+                "extra_device_price_rub": float(subscription["extra_device_price_rub"]),
+                "monthly_total_rub": float(subscription["monthly_total_rub"]),
                 "purchased_at": _timestamp(subscription["purchased_at"]),
                 "subscription_started_at": starts_at,
                 "link_issued_at": _timestamp(link["issued_at"]),
@@ -140,6 +144,121 @@ def subscriber_activation_records(input_dir: Path) -> list[dict[str, Any]]:
                 "activated_7d": activated,
             }
         )
+    return records
+
+
+def activation_experiment_records(input_dir: Path) -> list[dict[str, Any]]:
+    """Return eligible rows from the randomized post-purchase onboarding experiment."""
+    return [
+        row
+        for row in subscriber_activation_records(input_dir)
+        if row["onboarding_variant"] in {"control", "treatment"}
+    ]
+
+
+def activation_experiment_statistics(
+    records: list[dict[str, Any]], mde: float = 0.12
+) -> dict[str, Any]:
+    """Calculate a two-sided two-proportion z-test and 95% CI for activation uplift."""
+    grouped = {
+        variant: [row for row in records if row["onboarding_variant"] == variant]
+        for variant in ("control", "treatment")
+    }
+    if any(not rows for rows in grouped.values()):
+        raise ValueError("Both experiment variants must contain eligible subscriptions")
+
+    control_n = len(grouped["control"])
+    treatment_n = len(grouped["treatment"])
+    control_activated = sum(row["activated_7d"] for row in grouped["control"])
+    treatment_activated = sum(row["activated_7d"] for row in grouped["treatment"])
+    control_rate = control_activated / control_n
+    treatment_rate = treatment_activated / treatment_n
+    effect = treatment_rate - control_rate
+    pooled = (control_activated + treatment_activated) / (control_n + treatment_n)
+    pooled_se = math.sqrt(pooled * (1 - pooled) * (1 / control_n + 1 / treatment_n))
+    z_score = effect / pooled_se if pooled_se else 0.0
+    p_value = 2 * (1 - NormalDist().cdf(abs(z_score)))
+    effect_se = math.sqrt(
+        control_rate * (1 - control_rate) / control_n
+        + treatment_rate * (1 - treatment_rate) / treatment_n
+    )
+    z_critical = NormalDist().inv_cdf(0.975)
+
+    target_rate = min(0.999, control_rate + mde)
+    midpoint = (control_rate + target_rate) / 2
+    z_power = NormalDist().inv_cdf(0.8)
+    required_per_variant = math.ceil(
+        (
+            z_critical * math.sqrt(2 * midpoint * (1 - midpoint))
+            + z_power
+            * math.sqrt(control_rate * (1 - control_rate) + target_rate * (1 - target_rate))
+        )
+        ** 2
+        / mde**2
+    )
+    return {
+        "controlSubscriptions": control_n,
+        "treatmentSubscriptions": treatment_n,
+        "controlActivated": control_activated,
+        "treatmentActivated": treatment_activated,
+        "controlActivationRate": control_rate,
+        "treatmentActivationRate": treatment_rate,
+        "absoluteEffect": effect,
+        "relativeLift": effect / control_rate if control_rate else None,
+        "ciLow": effect - z_critical * effect_se,
+        "ciHigh": effect + z_critical * effect_se,
+        "zScore": z_score,
+        "pValue": p_value,
+        "alpha": 0.05,
+        "mde": mde,
+        "requiredSampleSize": required_per_variant * 2,
+        "observedSampleSize": control_n + treatment_n,
+        "statisticallySignificant": p_value < 0.05,
+    }
+
+
+def subscriber_retention_records(input_dir: Path) -> list[dict[str, Any]]:
+    """Build paid-subscriber cohort rows for complete calendar months."""
+    period = _read_csv(input_dir / "dataset_periods.csv")[0]
+    period_end = _timestamp(period["period_end"])
+    assert period_end is not None
+
+    successful_sessions: dict[tuple[str, datetime], int] = {}
+    for session in _read_csv(input_dir / "proxy_sessions.csv"):
+        started_at = _timestamp(session["started_at"])
+        if session["connection_status"] != "success" or started_at is None:
+            continue
+        activity_month = started_at.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        key = (session["subscription_id"], activity_month)
+        successful_sessions[key] = successful_sessions.get(key, 0) + 1
+
+    records: list[dict[str, Any]] = []
+    for activation in subscriber_activation_records(input_dir):
+        cohort_month = activation["subscription_started_at"].replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        activity_month = cohort_month
+        month_number = 0
+        while _add_months(activity_month, 1) <= period_end:
+            session_count = successful_sessions.get(
+                (activation["subscription_id"], activity_month), 0
+            )
+            records.append(
+                {
+                    "user_id": activation["user_id"],
+                    "subscription_id": activation["subscription_id"],
+                    "cohort_month": cohort_month.date().isoformat(),
+                    "activity_month": activity_month.date().isoformat(),
+                    "month_number": month_number,
+                    "sales_channel": activation["sales_channel"],
+                    "plan": activation["plan"],
+                    "activated_7d": activation["activated_7d"],
+                    "successful_sessions": session_count,
+                    "retained": month_number == 0 or session_count > 0,
+                }
+            )
+            month_number += 1
+            activity_month = _add_months(cohort_month, month_number)
     return records
 
 
@@ -184,6 +303,7 @@ def monthly_business_records(input_dir: Path) -> list[dict[str, Any]]:
             if (_timestamp(row["starts_at"]) or period_end) < month_end
             and ((ends_at := _timestamp(row["ends_at"])) is None or ends_at >= month_end)
         ]
+        ending_user_ids = {row["user_id"] for row in active_at_month_end}
         monthly_sessions = [
             row
             for row in sessions
@@ -203,6 +323,13 @@ def monthly_business_records(input_dir: Path) -> list[dict[str, Any]]:
             {
                 "month_start": month_start.date().isoformat(),
                 "active_paid_subscribers": len(active_user_ids),
+                "ending_paid_subscribers": len(ending_user_ids),
+                "basic_active_subscribers": len(
+                    {row["user_id"] for row in active_at_month_end if row["plan"] == "basic"}
+                ),
+                "pro_active_subscribers": len(
+                    {row["user_id"] for row in active_at_month_end if row["plan"] == "pro"}
+                ),
                 "monthly_active_paid_users": len(successful_users & active_user_ids),
                 "regular_paid_users": len(successful_users & regular_users),
                 "new_paid_users": sum(
@@ -220,9 +347,16 @@ def monthly_business_records(input_dir: Path) -> list[dict[str, Any]]:
                     if row["payment_status"] == "succeeded"
                     and month_start <= (_timestamp(row["paid_at"]) or period_end) < month_end
                 ),
-                "normalized_mrr_rub": sum(
-                    float(row["price_rub"]) / PLAN_MONTHS[row["plan"]]
+                "subscription_mrr_rub": sum(float(row["price_rub"]) for row in active_at_month_end),
+                "addon_mrr_rub": sum(
+                    int(row["extra_device_slots"]) * float(row["extra_device_price_rub"])
                     for row in active_at_month_end
+                ),
+                "extra_device_slots": sum(
+                    int(row["extra_device_slots"]) for row in active_at_month_end
+                ),
+                "normalized_mrr_rub": sum(
+                    float(row["monthly_total_rub"]) for row in active_at_month_end
                 ),
                 "connection_failure_rate": (
                     failed_sessions / len(monthly_sessions) if monthly_sessions else None

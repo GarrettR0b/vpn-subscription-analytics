@@ -5,7 +5,7 @@ from datetime import date
 from pathlib import Path
 
 from vpn_analytics.data_quality import validate_dataset
-from vpn_analytics.generator import generate_rows, write_rows
+from vpn_analytics.generator import EXTRA_DEVICE_PRICE_RUB, generate_rows, write_rows
 from vpn_analytics.settings import GeneratorSettings
 
 
@@ -35,6 +35,12 @@ def test_generation_is_deterministic(tmp_path: Path) -> None:
 
 
 def test_generated_dataset_passes_quality_contract(tmp_path: Path) -> None:
-    write_rows(generate_rows(_settings()), tmp_path)
+    rows = generate_rows(_settings())
+    write_rows(rows, tmp_path)
     failures = [result for result in validate_dataset(tmp_path) if result.failure_count]
     assert failures == []
+    assert {row["price_rub"] for row in rows["subscriptions"]} <= {130, 220}
+    assert {row["included_device_slots"] for row in rows["subscriptions"]} <= {6, 8}
+    assert {row["extra_device_price_rub"] for row in rows["subscriptions"]} == {
+        EXTRA_DEVICE_PRICE_RUB
+    }

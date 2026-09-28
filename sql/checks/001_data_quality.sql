@@ -18,6 +18,20 @@ WITH checks AS (
     UNION ALL
 
     SELECT
+        'invalid_plan_price_or_device_slots',
+        COUNT(*)::BIGINT
+    FROM core.subscriptions
+    WHERE NOT (
+        (plan = 'basic' AND price_rub = 130 AND included_device_slots = 6)
+        OR (plan = 'pro' AND price_rub = 220 AND included_device_slots = 8)
+    )
+       OR extra_device_slots NOT BETWEEN 0 AND 3
+       OR extra_device_price_rub <> 30
+       OR monthly_total_rub <> price_rub + extra_device_slots * extra_device_price_rub
+
+    UNION ALL
+
+    SELECT
         'link_subscription_user_mismatch',
         COUNT(*)::BIGINT
     FROM core.subscription_links AS link
@@ -82,11 +96,48 @@ WITH checks AS (
     UNION ALL
 
     SELECT
+        'invalid_experiment_assignment',
+        COUNT(*)::BIGINT
+    FROM core.subscriptions AS sub
+    CROSS JOIN core.dataset_periods AS p
+    WHERE (sub.starts_at < p.period_start AND sub.onboarding_variant <> 'not_enrolled')
+       OR (
+           sub.starts_at >= p.period_start
+           AND sub.onboarding_variant NOT IN ('control', 'treatment')
+       )
+
+    UNION ALL
+
+    SELECT
+        'experiment_mart_row_mismatch',
+        ABS(
+            (SELECT COUNT(*) FROM analytics.mart_subscriber_activation)
+            - (SELECT COUNT(*) FROM analytics.mart_activation_experiment)
+        )::BIGINT
+
+    UNION ALL
+
+    SELECT
         'regular_paid_users_target_mismatch',
         COUNT(*)::BIGINT
     FROM analytics.mart_monthly_business AS m
     CROSS JOIN core.dataset_periods AS p
     WHERE m.regular_paid_users <> p.regular_user_target
+
+    UNION ALL
+
+    SELECT
+        'retention_mart_duplicate_grain',
+        (COUNT(*) - COUNT(DISTINCT (subscription_id, activity_month)))::BIGINT
+    FROM analytics.mart_subscriber_retention
+
+    UNION ALL
+
+    SELECT
+        'retention_m0_baseline_mismatch',
+        COUNT(*)::BIGINT
+    FROM analytics.mart_subscriber_retention
+    WHERE month_number = 0 AND NOT retained
 )
 SELECT
     check_name,

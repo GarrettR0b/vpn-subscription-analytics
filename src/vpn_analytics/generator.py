@@ -35,12 +35,17 @@ TABLE_FIELDS: dict[str, list[str]] = {
         "user_id",
         "sales_channel",
         "plan",
+        "onboarding_variant",
         "purchased_at",
         "starts_at",
         "ends_at",
         "status",
         "auto_renew",
         "price_rub",
+        "included_device_slots",
+        "extra_device_slots",
+        "extra_device_price_rub",
+        "monthly_total_rub",
         "currency",
     ],
     "subscription_links": [
@@ -105,8 +110,9 @@ SERVER_LOCATIONS = [
     ("GE", "Tbilisi", "Central Asia"),
 ]
 
-PLAN_MONTHS = {"one_month": 1, "three_months": 3, "twelve_months": 12}
-PLAN_PRICES = {"one_month": 349, "three_months": 899, "twelve_months": 2990}
+PLAN_PRICES = {"basic": 130, "pro": 220}
+PLAN_DEVICE_SLOTS = {"basic": 6, "pro": 8}
+EXTRA_DEVICE_PRICE_RUB = 30
 
 
 def _iso(value: datetime | None) -> str:
@@ -139,6 +145,11 @@ def _add_months(value: datetime, months: int) -> datetime:
     month = month_index % 12 + 1
     day = min(value.day, monthrange(year, month)[1])
     return value.replace(year=year, month=month, day=day)
+
+
+def _extra_device_slots(rng: random.Random, plan: str) -> int:
+    weights = [0.86, 0.10, 0.03, 0.01] if plan == "basic" else [0.90, 0.07, 0.02, 0.01]
+    return rng.choices([0, 1, 2, 3], weights=weights, k=1)[0]
 
 
 def _month_windows(start: datetime, end: datetime) -> list[tuple[datetime, datetime]]:
@@ -295,8 +306,8 @@ def generate_rows(settings: GeneratorSettings) -> dict[str, list[dict[str, Any]]
         ("Other", 0.13),
     ]
     signup_sources = [("telegram_bot", 0.62), ("website", 0.38)]
-    regular_plans = [("one_month", 0.58), ("three_months", 0.27), ("twelve_months", 0.15)]
-    prospect_plans = [("one_month", 0.72), ("three_months", 0.20), ("twelve_months", 0.08)]
+    regular_plans = [("basic", 0.70), ("pro", 0.30)]
+    prospect_plans = [("basic", 0.76), ("pro", 0.24)]
     prospect_windows = _month_windows(period_start, period_end - timedelta(days=10))
     prospect_weights = [0.55, 0.85, 1.45, 2.30, 0.70, 1.90]
     assert len(prospect_windows) == len(prospect_weights)
@@ -306,6 +317,8 @@ def generate_rows(settings: GeneratorSettings) -> dict[str, list[dict[str, Any]]
         subscription_id = f"sub_{index:06d}"
         signup_source = _weighted(rng, signup_sources)
         plan = _weighted(rng, regular_plans)
+        extra_device_slots = _extra_device_slots(rng, plan)
+        monthly_total_rub = PLAN_PRICES[plan] + extra_device_slots * EXTRA_DEVICE_PRICE_RUB
         registered_at = period_start - timedelta(days=rng.randint(120, 900))
         starts_at = registered_at + timedelta(days=rng.randint(1, 45))
         purchased_at = starts_at - timedelta(minutes=rng.randint(2, 45))
@@ -330,12 +343,17 @@ def generate_rows(settings: GeneratorSettings) -> dict[str, list[dict[str, Any]]
                 "user_id": user_id,
                 "sales_channel": signup_source,
                 "plan": plan,
+                "onboarding_variant": "not_enrolled",
                 "purchased_at": _iso(purchased_at),
                 "starts_at": _iso(starts_at),
                 "ends_at": "",
                 "status": "active",
                 "auto_renew": "true",
                 "price_rub": PLAN_PRICES[plan],
+                "included_device_slots": PLAN_DEVICE_SLOTS[plan],
+                "extra_device_slots": extra_device_slots,
+                "extra_device_price_rub": EXTRA_DEVICE_PRICE_RUB,
+                "monthly_total_rub": monthly_total_rub,
                 "currency": "RUB",
             }
         )
@@ -355,7 +373,7 @@ def generate_rows(settings: GeneratorSettings) -> dict[str, list[dict[str, Any]]
         payment_sequence = 1
         due_at = starts_at
         while due_at < period_start:
-            due_at = _add_months(due_at, PLAN_MONTHS[plan])
+            due_at = _add_months(due_at, 1)
         while due_at < period_end:
             _add_payment(
                 rows,
@@ -364,12 +382,12 @@ def generate_rows(settings: GeneratorSettings) -> dict[str, list[dict[str, Any]]
                 subscription_id,
                 user_id,
                 due_at,
-                PLAN_PRICES[plan],
+                monthly_total_rub,
                 "renewal",
                 signup_source,
             )
             payment_sequence += 1
-            due_at = _add_months(due_at, PLAN_MONTHS[plan])
+            due_at = _add_months(due_at, 1)
 
         session_sequence = 1
         for month_start, month_end in _month_windows(period_start, period_end):
@@ -419,22 +437,58 @@ def generate_rows(settings: GeneratorSettings) -> dict[str, list[dict[str, Any]]
 
         subscription_id = f"sub_{index:06d}"
         plan = _weighted(rng, prospect_plans)
+        extra_device_slots = _extra_device_slots(rng, plan)
+        monthly_total_rub = PLAN_PRICES[plan] + extra_device_slots * EXTRA_DEVICE_PRICE_RUB
         purchased_at = registered_at + timedelta(hours=rng.uniform(0.1, 42))
         starts_at = purchased_at
-        ends_at = _add_months(starts_at, PLAN_MONTHS[plan])
-        status = "active" if ends_at >= period_end else "expired"
+        issued_at = purchased_at + timedelta(minutes=rng.randint(1, 5))
+        onboarding_variant = "treatment" if index % 2 == 0 else "control"
+        fetch_probability = 0.93 if signup_source == "telegram_bot" else 0.86
+        if onboarding_variant == "treatment":
+            fetch_probability += 0.03
+        fetched = rng.random() < fetch_probability
+        fetch_window_hours = 18 if onboarding_variant == "treatment" else 28
+        first_fetched_at = (
+            issued_at + timedelta(hours=rng.uniform(0.02, fetch_window_hours)) if fetched else None
+        )
+        engagement_score = min(
+            1.0,
+            rng.random()
+            + (0.08 if signup_source == "telegram_bot" else 0)
+            + (0.05 if plan == "pro" else 0),
+        )
+        activation_score = min(
+            1.0, engagement_score + (0.10 if onboarding_variant == "treatment" else 0)
+        )
+        if not fetched or engagement_score < 0.26:
+            paid_months = 1
+        elif engagement_score < 0.55:
+            paid_months = 2
+        elif engagement_score < 0.78:
+            paid_months = 3
+        else:
+            paid_months = 6
+        scheduled_end = _add_months(starts_at, paid_months)
+        ends_at = None if scheduled_end >= period_end else scheduled_end
+        active_until = min(scheduled_end, period_end)
+        status = "active" if ends_at is None else "expired"
         rows["subscriptions"].append(
             {
                 "subscription_id": subscription_id,
                 "user_id": user_id,
                 "sales_channel": signup_source,
                 "plan": plan,
+                "onboarding_variant": onboarding_variant,
                 "purchased_at": _iso(purchased_at),
                 "starts_at": _iso(starts_at),
                 "ends_at": _iso(ends_at),
                 "status": status,
-                "auto_renew": "false",
+                "auto_renew": str(paid_months > 1).lower(),
                 "price_rub": PLAN_PRICES[plan],
+                "included_device_slots": PLAN_DEVICE_SLOTS[plan],
+                "extra_device_slots": extra_device_slots,
+                "extra_device_price_rub": EXTRA_DEVICE_PRICE_RUB,
+                "monthly_total_rub": monthly_total_rub,
                 "currency": "RUB",
             }
         )
@@ -445,15 +499,28 @@ def generate_rows(settings: GeneratorSettings) -> dict[str, list[dict[str, Any]]
             subscription_id,
             user_id,
             purchased_at,
-            PLAN_PRICES[plan],
+            monthly_total_rub,
             "initial",
             signup_source,
         )
 
-        issued_at = purchased_at + timedelta(minutes=rng.randint(1, 5))
-        fetched = rng.random() < (0.93 if signup_source == "telegram_bot" else 0.86)
-        first_fetched_at = issued_at + timedelta(hours=rng.uniform(0.02, 28)) if fetched else None
-        active_until = min(ends_at, period_end)
+        payment_sequence = 2
+        renewal_due = _add_months(starts_at, 1)
+        while renewal_due < active_until:
+            _add_payment(
+                rows,
+                index,
+                payment_sequence,
+                subscription_id,
+                user_id,
+                renewal_due,
+                monthly_total_rub,
+                "renewal",
+                signup_source,
+            )
+            payment_sequence += 1
+            renewal_due = _add_months(renewal_due, 1)
+
         rows["subscription_links"].append(
             {
                 "subscription_link_id": f"lnk_{index:06d}",
@@ -469,12 +536,11 @@ def generate_rows(settings: GeneratorSettings) -> dict[str, list[dict[str, Any]]
         if first_fetched_at is None or first_fetched_at >= active_until:
             continue
 
-        engagement_score = rng.random() + (0.06 if signup_source == "telegram_bot" else 0)
-        if engagement_score < 0.14:
+        if activation_score < 0.14:
             early_attempts = 0
-        elif engagement_score < 0.34:
+        elif activation_score < 0.34:
             early_attempts = rng.randint(1, 2)
-        elif engagement_score < 0.72:
+        elif activation_score < 0.72:
             early_attempts = rng.randint(3, 5)
         else:
             early_attempts = rng.randint(6, 10)
@@ -488,12 +554,21 @@ def generate_rows(settings: GeneratorSettings) -> dict[str, list[dict[str, Any]]
             first_fetched_at + timedelta(days=day, hours=rng.uniform(0.1, 12))
             for day in sorted(early_days)
         ]
-        later_limit = max(0, (active_until - first_fetched_at).days // 5)
-        later_attempts = rng.randint(0, min(18, later_limit)) if engagement_score >= 0.34 else 0
-        for _ in range(later_attempts):
-            later_start = first_fetched_at + timedelta(days=8)
-            if later_start < active_until:
-                session_times.append(_random_time(rng, later_start, active_until))
+        later_start = first_fetched_at + timedelta(days=8)
+        if later_start < active_until:
+            for month_age, (month_start, month_end) in enumerate(
+                _month_windows(later_start, active_until), start=1
+            ):
+                active_probability = max(
+                    0.18,
+                    min(0.92, 0.35 + engagement_score * 0.55 - (month_age - 1) * 0.07),
+                )
+                if paid_months == 6:
+                    active_probability = max(active_probability, 0.75)
+                if rng.random() <= active_probability:
+                    session_times.extend(
+                        _random_time(rng, month_start, month_end) for _ in range(rng.randint(2, 7))
+                    )
 
         for session_sequence, session_at in enumerate(sorted(session_times), start=1):
             if session_at >= active_until:

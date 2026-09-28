@@ -28,7 +28,7 @@ def _arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
         "--database-url",
         default=os.environ.get(
             "DATABASE_URL",
-            "postgresql://analytics:analytics@localhost:5433/vpn_analytics",
+            "postgresql://analytics:analytics@127.0.0.1:5432/vpn_analytics",
         ),
     )
     parser.add_argument("--schema-sql", type=Path, default=root / "sql" / "ddl" / "001_schema.sql")
