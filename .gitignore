@@ -11,4 +11,5 @@ data/generated/*
 dashboard/screenshots/*.tmp
 dashboard/business-overview/dist/
 dashboard/business-overview/node_modules/
+powerbi/**/.pbi/
 *.log

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "vpn-analytics"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "e2d0734a-3034-4cb1-8f11-9c069f48812a"
+  }
+}
