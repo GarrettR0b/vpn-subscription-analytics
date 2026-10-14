@@ -19,7 +19,7 @@ free trial на 4 дня. После оплаты пользователь по�
                               ↓
                      PostgreSQL-витрины
                               ↓
-                    notebook / BI-дашборд
+                      CSV → DataLens
 ```
 
 Генератор создаёт стабильное ядро из **435 постоянных платящих пользователей в месяц**.
@@ -33,9 +33,10 @@ free trial на 4 дня. После оплаты пользователь по�
 - PostgreSQL loader, ограничения целостности и 14 SQL-проверок;
 - витрины `analytics.mart_subscriber_activation`, `analytics.mart_monthly_business`,
   `analytics.mart_subscriber_retention` и `analytics.mart_activation_experiment`;
+- воспроизводимый CSV-экспорт витрин для Yandex DataLens;
 - сверка Python ↔ PostgreSQL на уровне строк и метрик;
-- выполненные notebooks, автономные HTML-отчёты и интерактивный дашборд с вкладками
-  Business Overview, Activation, Retention и Experiment;
+- выполненные notebooks, автономные HTML-отчёты и CSV-слой для дашборда DataLens с
+  разделами Business Overview, Activation, Retention и Experiment;
 - PostgreSQL 18 для локальной базы; Docker Compose остаётся запасным вариантом.
 
 ## Быстрый старт
@@ -54,6 +55,12 @@ python -m pip install -e ".[analysis,dev]"
 
 Docker Compose остаётся запасным вариантом на порту `5433`; для него перед запуском
 задайте соответствующий `DATABASE_URL`.
+
+Экспортировать готовые витрины для загрузки в DataLens:
+
+```powershell
+python scripts/export_datalens_csv.py
+```
 
 ## Ключевые определения
 
@@ -78,7 +85,7 @@ scripts/      сквозной запуск и сверка
 sql/          DDL, витрины и SQL-проверки
 src/          генератор, loader, метрики и Python QA
 tests/        автоматические проверки
-dashboard/    готовый четырёхстраничный дашборд по PostgreSQL-витринам
+dashboard/    локальный прототип для сверки будущего DataLens-дашборда
 ```
 
 Все выводы описывают симуляцию и не являются production-показателями реальной компании.
