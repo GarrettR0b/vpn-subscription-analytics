@@ -1,2 +1,998 @@
 cultureInfo ru-RU
 
+	linguisticMetadata =
+			{
+			  "Version": "2.0.0",
+			  "Language": "en-US",
+			  "Entities": {
+			    "date.month": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Date",
+			          "ConceptualProperty": "Month"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Месяц": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "date.month_start": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Date",
+			          "ConceptualProperty": "Month Start"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Месяц": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "monthly_business.new_paying_users": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Monthly Business",
+			          "ConceptualProperty": "New Paying Users"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Новые платящие": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "monthly_business.churned_subscribers": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Monthly Business",
+			          "ConceptualProperty": "Churned Subscribers"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Ушедшие подписчики": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "monthly_business.latest_connection_failure_rate": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Monthly Business",
+			          "ConceptualProperty": "Latest Connection Failure Rate"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Ошибки подключения": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "monthly_business.ending_subscribers": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Monthly Business",
+			          "ConceptualProperty": "Ending Subscribers"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Платящие подписчики": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "monthly_business.mrr": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Monthly Business",
+			          "ConceptualProperty": "MRR"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Месячная выручка по подпискам": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "monthly_business.traffic": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Monthly Business",
+			          "ConceptualProperty": "Traffic"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Трафик": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "monthly_business.revenue": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Monthly Business",
+			          "ConceptualProperty": "Revenue"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Полученная выручка": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_activation.тариф": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Activation",
+			          "ConceptualProperty": "Тариф"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Тариф": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_activation.activation_rate": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Activation",
+			          "ConceptualProperty": "Activation Rate"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Доля активированных": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_activation.канал_покупки": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Activation",
+			          "ConceptualProperty": "Канал покупки"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Канал покупки": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_activation.weighted_failure_rate": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Activation",
+			          "ConceptualProperty": "Weighted Failure Rate"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Доля ошибок подключения": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_activation.вариант_настройки": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Activation",
+			          "ConceptualProperty": "Вариант настройки"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Вариант настройки": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_activation.paid_subscriptions": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Activation",
+			          "ConceptualProperty": "# Paid Subscriptions"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Оплаченные подписки": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_activation.activated_subscriptions": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Activation",
+			          "ConceptualProperty": "# Activated Subscriptions"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Активированные подписки": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_activation.link_fetch_rate": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Activation",
+			          "ConceptualProperty": "Link Fetch Rate"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Доля получивших ссылку": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_activation.average_time_to_first_value": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Activation",
+			          "ConceptualProperty": "Average Time to First Value"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Часов до первого подключения": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.cohort_month": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "Cohort Month"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Месяц первой оплаты": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.retention_rate": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "Retention Rate"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Доля вернувшихся": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.month_number": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "Month Number"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Месяцев после оплаты": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.m1_retention": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "M1 Retention"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Возврат через 1 месяц": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.m3_retention": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "M3 Retention"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Возврат через 3 месяца": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.m3_observed_subscriptions": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "M3 Observed Subscriptions"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Подписки с наблюдением через 3 месяца": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.тариф": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "Тариф"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Тариф": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.канал_покупки": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "Канал покупки"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Канал покупки": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.m1_observed_subscriptions": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "M1 Observed Subscriptions"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Подписки с наблюдением через 1 месяц": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.cohort_size": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "Cohort Size"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Подписки в выбранных группах": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.m1_retained_subscribers": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "M1 Retained Subscribers"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Вернувшиеся через 1 месяц": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.observed_subscriptions": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "Observed Subscriptions"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Наблюдаемые подписки": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.retained_subscribers": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "Retained Subscribers"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Вернувшиеся подписчики": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "subscriber_retention.ранняя_активация": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Subscriber Retention",
+			          "ConceptualProperty": "Ранняя активация"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Ранняя активация": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.treatment_sample": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Treatment Sample"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Участники настройки с подсказками": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.lift_ci_lower": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Lift CI Lower"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Нижняя граница оценки (95%)": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.тариф": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Тариф"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Тариф": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.control_sample": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Control Sample"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Участники обычной настройки": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.activation_p_value": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Activation P Value"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Проверка различий (p)": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.вариант_настройки": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Вариант настройки"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Вариант настройки": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.experiment_subscriptions": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "# Experiment Subscriptions"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Участники проверки": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.treatment_activation_rate": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Treatment Activation Rate"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Активация · с подсказками": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.relative_lift": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Relative Lift"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Относительное изменение": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.канал_покупки": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Канал покупки"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Канал покупки": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.experiment_activation_rate": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Experiment Activation Rate"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Доля активированных": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.experiment_link_fetch_rate": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Experiment Link Fetch Rate"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Доля получивших ссылку": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.absolute_lift": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Absolute Lift"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Разница активации, п.п.": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.lift_ci_upper": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Lift CI Upper"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Верхняя граница оценки (95%)": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "activation_experiment.control_activation_rate": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Activation Experiment",
+			          "ConceptualProperty": "Control Activation Rate"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Активация · обычная настройка": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    }
+			  }
+			}
+		contentType: json
+

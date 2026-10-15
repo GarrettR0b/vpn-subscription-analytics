@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import nbformat as nbf
@@ -30,7 +31,8 @@ def _rate_text(value: float) -> str:
     return f"{value:.1%}".replace(".", ",")
 
 
-def build_notebook(input_dir: Path) -> nbf.NotebookNode:
+def build_notebook(input_dir: Path, output_dir: Path) -> nbf.NotebookNode:
+    data_path = Path(os.path.relpath(input_dir.resolve(), output_dir.resolve())).as_posix()
     activation = pd.DataFrame(subscriber_activation_records(input_dir))
     monthly = pd.DataFrame(monthly_business_records(input_dir))
     activation_rate = float(activation["activated_7d"].mean())
@@ -49,18 +51,20 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
     notebook["cells"] = [
         nbf.v4.new_markdown_cell(
             "# Аналитика подписочного VPN через HAPP\n\n"
-            "Воспроизводимый анализ синтетического сервиса `ShieldRoute`: продажи через сайт и "
-            "Telegram-бот, выдача ссылки подписки, её загрузка в HAPP и использование прокси."
+            "Показательный анализ на основе реального проекта автора: продажи через сайт и "
+            "Telegram-бот, выдача ссылки подписки, её загрузка в HAPP и использование прокси. "
+            "Для соблюдения конфиденциальности название `ShieldRoute`, данные и численные "
+            "показатели публичной версии воссозданы синтетически."
         ),
         nbf.v4.new_markdown_cell(
             "## Краткий вывод\n\n"
-            f"- Стабильное платящее ядро — **{int(monthly['regular_paid_users'].min())}** "
+            f"- Стабильное платящее ядро - **{int(monthly['regular_paid_users'].min())}** "
             "пользователей в каждом полном месяце; новые и временные пользователи считаются сверх него.\n"
             f"- Всего активных платящих пользователей по месяцам: "
             f"**{int(monthly['monthly_active_paid_users'].min())}–"
             f"{int(monthly['monthly_active_paid_users'].max())}**.\n"
-            f"- Среди **{len(activation)}** новых оплаченных подписок полная 7-дневная активация — "
-            f"**{_rate_text(activation_rate)}**, загрузка ссылки в HAPP — "
+            f"- Среди **{len(activation)}** новых оплаченных подписок полная 7-дневная активация - "
+            f"**{_rate_text(activation_rate)}**, загрузка ссылки в HAPP - "
             f"**{_rate_text(link_fetch_rate)}**.\n"
             f"- Активация по каналу продажи: Telegram-бот "
             f"**{_rate_text(float(channel_rates['telegram_bot']))}**, сайт "
@@ -73,8 +77,9 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
             "Подписка активирована за 7 дней, если ссылка загружена в HAPP, проведено не менее "
             "трёх успешных прокси-сессий в два разных UTC-дня и накоплено не менее 30 минут "
             "защищённого трафика.\n\n"
-            "Стабильное ядро — пользователи, чья подписка началась до периода наблюдения и "
-            "оставалась активной до его конца. Все данные и результаты синтетические."
+            "Стабильное ядро - пользователи, чья подписка началась до периода наблюдения и "
+            "оставалась активной до его конца. Численность ядра и различия вероятностей "
+            "поведения по каналам заданы генератором. Все данные и результаты синтетические."
         ),
         nbf.v4.new_code_cell(
             "import json\n"
@@ -83,8 +88,7 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
             "import pandas as pd\n\n"
             "from vpn_analytics.data_quality import validate_dataset\n"
             "from vpn_analytics.metrics import monthly_business_records, subscriber_activation_records\n\n"
-            'ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()\n'
-            'DATA_DIR = ROOT / "data" / "generated"\n'
+            f'DATA_DIR = Path({data_path!r}).resolve()\n'
             'plt.style.use("seaborn-v0_8-whitegrid")\n'
             'COLORS = {"base": "#173F5F", "total": "#F2A900", "accent": "#2A9D8F"}'
         ),
@@ -170,13 +174,14 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
             "## Выводы\n\n"
             f"1. Генератор удерживает заданное стабильное ядро в **"
             f"{int(monthly['regular_paid_users'].min())}** пользователей ежемесячно.\n"
-            f"2. Основной резерв находится после оплаты: полная активация составляет "
+            f"2. В симуляции полная активация составляет "
             f"**{_rate_text(activation_rate)}** при загрузке ссылки в HAPP у "
-            f"**{_rate_text(link_fetch_rate)}** новых подписок.\n"
-            "3. Telegram-бот выглядит сильнее сайта по активации, но синтетическое "
-            "наблюдательное сравнение не является причинным эффектом.\n"
-            "4. Для эксплуатации рядом с ростом базы нужно контролировать failure rate, "
-            "трафик, cash revenue и нормализованный MRR."
+            f"**{_rate_text(link_fetch_rate)}** новых подписок. Этот разрыв иллюстрирует "
+            "поиск гипотез улучшения онбординга, а не доказанный резерв реального бизнеса.\n"
+            "3. Различия Telegram-бота и сайта зависят от параметров генератора; "
+            "наблюдательное сравнение не доказывает причинный эффект канала.\n"
+            "4. В реальном сервисе рядом с ростом базы следует контролировать failure rate, "
+            "трафик, cash revenue и нормализованный MRR; здесь показан пример такого мониторинга."
         ),
     ]
     return notebook
@@ -184,7 +189,7 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
 
 def main() -> int:
     args = _arguments()
-    notebook = build_notebook(args.input_dir)
+    notebook = build_notebook(args.input_dir, args.output.parent)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     nbf.write(notebook, args.output)
     if not args.no_execute:
@@ -201,6 +206,7 @@ def main() -> int:
         from nbconvert import HTMLExporter
 
         html_body, _ = HTMLExporter(template_name="lab").from_notebook_node(notebook)
+        args.html_output.parent.mkdir(parents=True, exist_ok=True)
         args.html_output.write_text(html_body, encoding="utf-8")
     print(
         json.dumps(

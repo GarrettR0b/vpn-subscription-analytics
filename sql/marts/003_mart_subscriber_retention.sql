@@ -24,7 +24,7 @@ observations AS (
     CROSS JOIN period AS p
     CROSS JOIN LATERAL GENERATE_SERIES(
         DATE_TRUNC('month', a.subscription_started_at),
-        DATE_TRUNC('month', p.period_end - INTERVAL '1 day'),
+        DATE_TRUNC('month', p.period_end) - INTERVAL '1 month',
         INTERVAL '1 month'
     ) AS activity_month
 ),

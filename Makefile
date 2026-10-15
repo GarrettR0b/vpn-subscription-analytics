@@ -1,4 +1,5 @@
 .PHONY: setup data check db-up db-down load test notebook
+RESET_DATABASE ?=
 
 setup:
 	python -m pip install -e ".[analysis,dev]"
@@ -16,7 +17,7 @@ db-down:
 	docker compose down
 
 load:
-	python -m vpn_analytics.loader --input-dir data/generated
+	python -m vpn_analytics.loader --input-dir data/generated --reset-database "$(RESET_DATABASE)"
 
 test:
 	python -m pytest

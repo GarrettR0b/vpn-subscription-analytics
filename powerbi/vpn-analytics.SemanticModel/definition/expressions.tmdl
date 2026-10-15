@@ -1,0 +1,12 @@
+/// Адрес локального PostgreSQL без учётных данных.
+expression 'PostgreSQL Server' = "127.0.0.1:5432" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 4406d4ff-c362-4d70-9705-9db7a24c98e9
+
+	annotation PBI_ResultType = Text
+
+/// База данных с аналитическими SQL-витринами.
+expression 'PostgreSQL Database' = "vpn_analytics" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: c6745281-9cb0-438e-8e64-8ccd69d66d33
+
+	annotation PBI_ResultType = Text
+

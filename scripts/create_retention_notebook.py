@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import nbformat as nbf
@@ -30,7 +31,8 @@ def _percent(value: float) -> str:
     return f"{value:.1%}".replace(".", ",")
 
 
-def build_notebook(input_dir: Path) -> nbf.NotebookNode:
+def build_notebook(input_dir: Path, output_dir: Path) -> nbf.NotebookNode:
+    data_path = Path(os.path.relpath(input_dir.resolve(), output_dir.resolve())).as_posix()
     retention = pd.DataFrame(subscriber_retention_records(input_dir))
     overall = retention.groupby("month_number").agg(
         eligible=("subscription_id", "size"),
@@ -58,7 +60,9 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
         nbf.v4.new_markdown_cell(
             "# Retention и cohort-анализ VPN через HAPP\n\n"
             "Анализ возврата новых платящих подписок к использованию прокси-сервиса после "
-            "покупки. Все данные синтетические."
+            "покупки. Часть показательного кейса на основе реального проекта автора. "
+            "Для соблюдения конфиденциальности данные и численные показатели публичной "
+            "версии воссозданы синтетически."
         ),
         nbf.v4.new_markdown_cell(
             "## tl;dr\n\n"
@@ -69,21 +73,24 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
             f"**{_percent(activated_rate)} против {_percent(not_activated_rate)}** "
             f"(**{(activated_rate - not_activated_rate) * 100:+.1f} п.п.**).\n"
             f"- Pro показывает **{_percent(pro_rate)}** против **{_percent(basic_rate)}** у Basic; "
-            f"Telegram-бот — **{_percent(telegram_rate)}** против **{_percent(website_rate)}** "
+            f"Telegram-бот - **{_percent(telegram_rate)}** против **{_percent(website_rate)}** "
             "у сайта. Это описательные различия, а не причинные эффекты.\n"
-            "- Приоритет: улучшать раннюю активацию и тестировать удерживающие коммуникации "
-            "до третьего полного месяца использования."
+            "- Следующая проверка для реального кейса: динамика одних и тех же зрелых когорт "
+            "и гипотеза связи раннего онбординга с удержанием."
         ),
         nbf.v4.new_markdown_cell(
             "## Context & Methods\n\n"
             "**Вопрос:** где сервису сфокусировать работу над удержанием платящих подписчиков?\n\n"
-            "Когорта — eligible-подписки по месяцу первой оплаты. `M0` — месяц покупки и "
+            "Когорта - eligible-подписки по месяцу начала подписки. `M0` - месяц покупки и "
             "базовый уровень 100%. В `M1+` подписка считается вернувшейся, если в полном "
             "календарном UTC-месяце была хотя бы одна успешная прокси-сессия. Это usage "
             "retention, а не непрерывное survival-удержание: пользователь может вернуться "
             "после неактивного месяца. Незрелые периоды не заполняются нулями.\n\n"
             "Источник: `data/generated/*.csv`; независимый Python-расчёт повторяет логику "
-            "`analytics.mart_subscriber_retention`."
+            "`analytics.mart_subscriber_retention`. Общий `engagement_score` генератора "
+            "влияет на раннюю активацию, длительность подписки и последующее использование. "
+            "Связь этих показателей частично заложена в модель; различия каналов и тарифов "
+            "также зависят от настроек симуляции."
         ),
         nbf.v4.new_markdown_cell(
             "### Key Assumptions\n\n"
@@ -104,14 +111,13 @@ from matplotlib.ticker import PercentFormatter
 
 from vpn_analytics.metrics import subscriber_retention_records
 
-ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
-DATA_DIR = ROOT / "data" / "generated"
+DATA_DIR = Path(__DATA_PATH__).resolve()
 plt.style.use("seaborn-v0_8-whitegrid")
 COLORS = {"primary": "#2563EB", "secondary": "#94A3B8", "text": "#334155"}
 MONTHS_RU = {
     1: "янв", 2: "фев", 3: "мар", 4: "апр", 5: "май", 6: "июн",
     7: "июл", 8: "авг", 9: "сен", 10: "окт", 11: "ноя", 12: "дек",
-}"""
+}""".replace("__DATA_PATH__", repr(data_path))
         ),
         nbf.v4.new_markdown_cell("## Data\n\n### 1. Load and validate cohort rows"),
         nbf.v4.new_code_cell(
@@ -202,7 +208,7 @@ ax.set(title="Usage retention по месяцу покупки", xlabel="Воз�
 for row_index in range(cohort_matrix.shape[0]):
     for column_index in range(cohort_matrix.shape[1]):
         value = cohort_matrix.iloc[row_index, column_index]
-        label = "—" if pd.isna(value) else f"{value:.0%}"
+        label = "-" if pd.isna(value) else f"{value:.0%}"
         color = "#94A3B8" if pd.isna(value) else ("white" if value >= 0.55 else COLORS["text"])
         ax.text(column_index, row_index, label, ha="center", va="center", color=color)
 colorbar = fig.colorbar(image, ax=ax, fraction=0.035, pad=0.03)
@@ -213,7 +219,7 @@ plt.tight_layout();"""
         nbf.v4.new_markdown_cell(
             "Крупные мартовская и апрельская когорты показывают M1 около 54–56%; ранние "
             "январь и февраль сильнее колеблются из-за размеров 15 и 13 подписок. Пустые клетки "
-            "— незрелые периоды, а не нулевой retention."
+            "- незрелые периоды, а не нулевой retention."
         ),
         nbf.v4.new_markdown_cell("### 4. M1 retention by segment"),
         nbf.v4.new_code_cell(
@@ -274,20 +280,18 @@ plt.tight_layout();"""
         ),
         nbf.v4.new_markdown_cell(
             "## Takeaways\n\n"
-            f"1. **Главный lifecycle-риск — переход к M3.** В агрегате retention снижается "
-            f"с **{_percent(m2_rate)} в M2** до **{_percent(m3_rate)} в M3**. Рекомендуется "
-            "запустить отдельный тест коммуникаций и сценариев возврата примерно на 30–75-й "
-            "день, до попадания пользователя в этот период.\n"
-            f"2. **Ранняя активация — сильный маркер будущего использования:** M1 равен "
+            f"1. **M2 и M3 имеют разный состав зрелых когорт:** агрегаты равны "
+            f"**{_percent(m2_rate)}** и **{_percent(m3_rate)}**. По их разности нельзя "
+            "определить главный момент оттока. Сначала нужно сравнить одни и те же когорты "
+            "по возрастам и проверить причины прекращения использования.\n"
+            f"2. **Связь активации с retention частично задана генератором:** M1 равен "
             f"**{_percent(activated_rate)}** у активировавшихся и "
-            f"**{_percent(not_activated_rate)}** у остальных. Приоритетная аудитория для "
-            "HAPP-инструкций и поддержки — купившие подписку, но не активировавшиеся за 7 дней.\n"
-            f"3. **Pro и Telegram выглядят устойчивее**, но выбор тарифа и канала не случаен. "
-            "Разрывы нельзя использовать как доказательство того, что повышение цены или "
-            "перевод пользователей в бот увеличит retention.\n"
-            "4. **Следующее измерение:** добавить причины отмены и неуспешного продления, затем "
-            "оценить тесты отдельно по тарифу и каналу. До созревания новых когорт не сравнивать "
-            "их M2–M3 с нулём."
+            f"**{_percent(not_activated_rate)}** у остальных. Это демонстрация сегментации; "
+            "полезность HAPP-инструкций для удержания требует проверки на реальных данных.\n"
+            "3. **Различия Pro/Basic и каналов зависят от симуляции.** Они не доказывают, "
+            "что повышение цены или перевод пользователей в бот увеличит retention.\n"
+            "4. **Для реального исследования:** измерить причины отмены и неуспешного "
+            "продления, затем спланировать проверку гипотез. Незрелые M2–M3 не заменять нулями."
         ),
     ]
     return notebook
@@ -295,7 +299,7 @@ plt.tight_layout();"""
 
 def main() -> int:
     args = _arguments()
-    notebook = build_notebook(args.input_dir)
+    notebook = build_notebook(args.input_dir, args.output.parent)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     nbf.write(notebook, args.output)
     if not args.no_execute:
@@ -310,6 +314,7 @@ def main() -> int:
         ).execute()
         nbf.write(notebook, args.output)
         html_body, _ = HTMLExporter(template_name="lab").from_notebook_node(notebook)
+        args.html_output.parent.mkdir(parents=True, exist_ok=True)
         args.html_output.write_text(html_body, encoding="utf-8")
     print(
         json.dumps(

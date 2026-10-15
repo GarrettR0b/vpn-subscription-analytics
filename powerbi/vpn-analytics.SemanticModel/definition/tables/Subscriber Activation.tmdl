@@ -1,0 +1,152 @@
+/// Одна новая платная подписка с полным семидневным окном наблюдения за активацией.
+table 'Subscriber Activation'
+	lineageTag: 02a9d28d-cfcc-4ee5-8fbd-cddfef8d4bdf
+
+	/// Число новых платных подписок с полным семидневным окном наблюдения.
+	measure '# Paid Subscriptions' = DISTINCTCOUNT('Subscriber Activation'[Subscription ID])
+		formatString: #,##0
+		displayFolder: Activation KPIs
+		lineageTag: 9d313947-e139-41eb-bf53-6bb2a758ca48
+
+	/// Число подписок, выполнивших каноническое условие активации за 7 дней.
+	measure '# Activated Subscriptions' = CALCULATE(DISTINCTCOUNT('Subscriber Activation'[Subscription ID]), KEEPFILTERS('Subscriber Activation'[Activated 7D] = TRUE()))
+		formatString: #,##0
+		displayFolder: Activation KPIs
+		lineageTag: 96bb7714-f16a-4a79-9520-d88e9c7888e3
+
+	/// Доля новых платных подписок, активировавшихся в течение 7 дней.
+	measure 'Activation Rate' = DIVIDE([# Activated Subscriptions], [# Paid Subscriptions])
+		formatString: 0.0%
+		displayFolder: Activation KPIs
+		lineageTag: 00785217-56d4-4fef-b15e-0d8c0bdd0d7f
+
+	/// Доля подписок, у которых ссылка была получена через HAPP в течение 7 дней.
+	measure 'Link Fetch Rate' = DIVIDE(CALCULATE(DISTINCTCOUNT('Subscriber Activation'[Subscription ID]), KEEPFILTERS('Subscriber Activation'[Link Fetched 7D] = TRUE())), [# Paid Subscriptions])
+		formatString: 0.0%
+		displayFolder: Activation KPIs
+		lineageTag: 008aaa0f-dc18-46ba-a948-4c36911e2ba9
+
+	/// Взвешенная доля неуспешных подключений в первые 7 дней.
+	measure 'Weighted Failure Rate' = DIVIDE(SUM('Subscriber Activation'[Failed Attempts 7D]), SUM('Subscriber Activation'[Total Attempts 7D]))
+		formatString: 0.0%
+		displayFolder: Activation KPIs
+		lineageTag: c3acc674-95f3-43b9-9861-e289add6a5d9
+
+	/// Среднее число часов до первого успешного подключения только по подключившимся подпискам (ненулевой TTFV). Не характеризует не подключившихся.
+	measure 'Average Time to First Value' = AVERAGE('Subscriber Activation'[Time to First Value Hours])
+		formatString: 0.0 "ч"
+		displayFolder: Activation KPIs
+		lineageTag: 5241d024-57b3-444b-b60b-373551408367
+
+	column 'User ID'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 2b26fac8-48e4-47fe-a824-d6e737e8e381
+		summarizeBy: none
+		sourceColumn: User ID
+
+	column 'Subscription ID'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 896e9d5c-9a0c-4c63-b971-dec32b9d21e0
+		summarizeBy: none
+		sourceColumn: Subscription ID
+
+	column 'Subscription Start Date'
+		dataType: dateTime
+		isHidden
+		formatString: dd.MM.yyyy
+		lineageTag: 115b8377-dbfd-410e-8354-f50d23f0a80e
+		summarizeBy: none
+		sourceColumn: Subscription Start Date
+
+	/// Канал, в котором пользователь купил подписку.
+	column 'Sales Channel'
+		dataType: string
+		lineageTag: e7c15f14-0109-46dd-94d0-cce8516bf100
+		summarizeBy: none
+		sourceColumn: Sales Channel
+
+	/// Тариф подписки: Basic или Pro.
+	column Plan
+		dataType: string
+		lineageTag: 7cf36ed6-bf4f-41e0-8e70-2f9acf78e7b8
+		summarizeBy: none
+		sourceColumn: Plan
+
+	/// Вариант онбординга: control или treatment.
+	column 'Onboarding Variant'
+		dataType: string
+		lineageTag: 7eb440b0-ef04-4cfa-9b49-15cf5c677309
+		summarizeBy: none
+		sourceColumn: Onboarding Variant
+
+	column 'Failed Attempts 7D'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: d16675fd-c8b5-48f9-bb30-9e4830dea3d3
+		sourceColumn: Failed Attempts 7D
+
+	column 'Total Attempts 7D'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 09a8e79d-9bd1-499c-8a32-f4ca550ca14c
+		sourceColumn: Total Attempts 7D
+
+	column 'Time to First Value Hours'
+		dataType: double
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 4bd7a0f9-775a-464d-970e-373eb67ed693
+		summarizeBy: sum
+		sourceColumn: Time to First Value Hours
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Признак достижения канонической активации в первые 7 дней.
+	column 'Activated 7D'
+		dataType: boolean
+		lineageTag: 5a0bec97-2d3b-4b30-9016-e478e47fbaf0
+		summarizeBy: none
+		sourceColumn: Activated 7D
+
+	column 'Link Fetched 7D'
+		dataType: boolean
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 269a2b3b-0d78-4698-a9a7-3a7a385f1637
+		summarizeBy: none
+		sourceColumn: Link Fetched 7D
+
+	/// Название тарифа для отчёта; исходный код Plan сохранён.
+	column Тариф = SWITCH('Subscriber Activation'[Plan], "basic", "Basic", "pro", "Pro", "Неизвестный тариф")
+		dataType: string
+		lineageTag: 4b477d34-ec55-4157-ab79-d37ffc26d752
+		summarizeBy: none
+
+	/// Русское название канала покупки; исходный код Sales Channel сохранён.
+	column 'Канал покупки' = SWITCH('Subscriber Activation'[Sales Channel], "telegram_bot", "Телеграм-бот", "website", "Сайт", "Другой канал")
+		dataType: string
+		lineageTag: e42af522-0d88-436b-b57a-76000d751d8c
+		summarizeBy: none
+
+	/// Понятное название контрольного и нового вариантов первоначальной настройки.
+	column 'Вариант настройки' = SWITCH('Subscriber Activation'[Onboarding Variant], "control", "Обычная настройка", "treatment", "Настройка с подсказками", "Другой вариант")
+		dataType: string
+		lineageTag: abd4a570-7a26-4325-a383-5d93760ab337
+		summarizeBy: none
+
+	partition 'Subscriber Activation' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(#"PostgreSQL Server", #"PostgreSQL Database", [Query = "SELECT user_id AS ""User ID"", subscription_id AS ""Subscription ID"", subscription_started_at::date AS ""Subscription Start Date"", sales_channel AS ""Sales Channel"", plan AS ""Plan"", onboarding_variant AS ""Onboarding Variant"", failed_attempts_7d AS ""Failed Attempts 7D"", total_attempts_7d AS ""Total Attempts 7D"", time_to_first_value_hours AS ""Time to First Value Hours"", activated_7d AS ""Activated 7D"", COALESCE(first_fetched_at < subscription_started_at + INTERVAL '7 days', FALSE) AS ""Link Fetched 7D"" FROM analytics.mart_subscriber_activation"])
+				in
+				    Source
+

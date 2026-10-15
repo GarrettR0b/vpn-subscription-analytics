@@ -9,3 +9,6 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 *.ps1 text eol=crlf
+
+# Power BI Desktop serializes TMDL with an empty final line.
+*.tmdl whitespace=-blank-at-eof

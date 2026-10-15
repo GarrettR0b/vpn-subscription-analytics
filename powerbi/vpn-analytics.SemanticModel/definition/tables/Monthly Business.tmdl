@@ -1,0 +1,203 @@
+/// Одна строка на завершённый календарный месяц: платящая база, выручка и использование VPN.
+table 'Monthly Business'
+	lineageTag: 585fdbc5-1986-47e8-9eb1-a12fe15e80a9
+
+	/// Число платящих подписчиков на конец последнего видимого месяца.
+	measure 'Ending Subscribers' =
+			VAR _lastMonth = MAX('Monthly Business'[Month Start])
+			RETURN
+			    CALCULATE(
+			        MAX('Monthly Business'[Ending Paid Subscribers]),
+			        KEEPFILTERS('Monthly Business'[Month Start] = _lastMonth)
+			    )
+		formatString: #,##0
+		displayFolder: Business KPIs
+		lineageTag: a7ef0bf1-1656-419f-b627-1235ffd023cf
+
+	/// Нормализованная месячная повторяющаяся выручка последнего видимого месяца, включая доплаты за устройства.
+	measure MRR =
+			VAR _lastMonth = MAX('Monthly Business'[Month Start])
+			RETURN
+			    CALCULATE(
+			        MAX('Monthly Business'[Normalized MRR Rub]),
+			        KEEPFILTERS('Monthly Business'[Month Start] = _lastMonth)
+			    )
+		formatString: #,##0 "₽"
+		displayFolder: Business KPIs
+		lineageTag: f59ee56a-5b0f-458d-8f86-010b4db2a72a
+
+	/// Успешно полученная денежная выручка за выбранный период.
+	measure Revenue = SUM('Monthly Business'[Cash Revenue Rub])
+		formatString: #,##0 "₽"
+		displayFolder: Business KPIs
+		lineageTag: dfcc8bbb-cb6c-41b9-ba3f-df660a8c335b
+
+	/// Новые платящие пользователи в последнем видимом месяце.
+	measure 'New Paying Users' =
+			VAR _lastMonth = MAX('Monthly Business'[Month Start])
+			RETURN
+			    CALCULATE(
+			        MAX('Monthly Business'[New Paid Users]),
+			        KEEPFILTERS('Monthly Business'[Month Start] = _lastMonth)
+			    )
+		formatString: #,##0
+		displayFolder: Business KPIs
+		lineageTag: 99a5cce8-91b3-4590-b38c-deef5de06302
+
+	/// Пользователи, завершившие подписку в последнем видимом месяце.
+	measure 'Churned Subscribers' =
+			VAR _lastMonth = MAX('Monthly Business'[Month Start])
+			RETURN
+			    CALCULATE(
+			        MAX('Monthly Business'[Churned Users]),
+			        KEEPFILTERS('Monthly Business'[Month Start] = _lastMonth)
+			    )
+		formatString: #,##0
+		displayFolder: Business KPIs
+		lineageTag: ccead217-28e7-41bf-aea4-2603e1629a0a
+
+	/// Успешный VPN-трафик в последнем видимом месяце, гигабайты.
+	measure Traffic =
+			VAR _lastMonth = MAX('Monthly Business'[Month Start])
+			RETURN
+			    CALCULATE(
+			        MAX('Monthly Business'[Traffic GB]),
+			        KEEPFILTERS('Monthly Business'[Month Start] = _lastMonth)
+			    )
+		formatString: #,##0.0 "ГБ"
+		displayFolder: Service KPIs
+		lineageTag: b8c09c32-0777-4663-8b9e-210a743f3f1c
+
+	/// Доля неуспешных попыток подключения в последнем видимом месяце.
+	measure 'Latest Connection Failure Rate' =
+			VAR _lastMonth = MAX('Monthly Business'[Month Start])
+			RETURN
+			    CALCULATE(
+			        MAX('Monthly Business'[Connection Failure Rate]),
+			        KEEPFILTERS('Monthly Business'[Month Start] = _lastMonth)
+			    )
+		formatString: 0.0%
+		displayFolder: Service KPIs
+		lineageTag: d67220d5-1d5a-42cf-8e9c-cb7b383716e6
+
+	column 'Month Start'
+		dataType: dateTime
+		isHidden
+		formatString: dd.MM.yyyy
+		lineageTag: 51fa62c7-5358-477a-ac83-882061154b5b
+		summarizeBy: none
+		sourceColumn: Month Start
+
+	column 'Active Paid Subscribers'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 7d493bbf-e76c-47fc-86d1-3d92af29e575
+		sourceColumn: Active Paid Subscribers
+
+	column 'Ending Paid Subscribers'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 122eb630-509e-4e2b-bf3d-3dff531317a6
+		sourceColumn: Ending Paid Subscribers
+
+	column 'Basic Active Subscribers'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: a9786ed8-62d2-48f3-affc-88e34af48a4e
+		sourceColumn: Basic Active Subscribers
+
+	column 'Pro Active Subscribers'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: efd9fed3-51f3-4bac-a509-dba68311585a
+		sourceColumn: Pro Active Subscribers
+
+	column 'Monthly Active Paid Users'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 4f776472-c58b-47da-826d-9fb76281dda3
+		sourceColumn: Monthly Active Paid Users
+
+	column 'Regular Paid Users'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 1b3a7381-7994-42c1-af93-4af2cdaf949e
+		sourceColumn: Regular Paid Users
+
+	column 'New Paid Users'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 08d2900c-2287-455f-82cd-062a51d251dc
+		sourceColumn: New Paid Users
+
+	column 'Churned Users'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 7aa885e1-c482-4ef1-a2db-3e1183e1a1ef
+		sourceColumn: Churned Users
+
+	column 'Cash Revenue Rub'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 54a7522b-91e0-4a43-a04a-d5dabaf6ad4f
+		sourceColumn: Cash Revenue Rub
+
+	column 'Subscription MRR Rub'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 49f3f01a-031f-443b-b74f-9546543e6656
+		sourceColumn: Subscription MRR Rub
+
+	column 'Add-on MRR Rub'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 77963f5f-ad7c-401a-9d0f-72a6c0babf00
+		sourceColumn: Add-on MRR Rub
+
+	column 'Extra Device Slots'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: fee2ce74-7839-481d-8b19-8dbcb81787bb
+		sourceColumn: Extra Device Slots
+
+	column 'Normalized MRR Rub'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 6af45e95-98f5-46e0-9dd6-9b282e504eac
+		sourceColumn: Normalized MRR Rub
+
+	column 'Connection Failure Rate'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 3c838959-17f0-4459-86fe-e443ceff9247
+		sourceColumn: Connection Failure Rate
+
+	column 'Traffic GB'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 7dd3f798-5173-4c3d-81f3-7e70a3832b7c
+		sourceColumn: Traffic GB
+
+	partition 'Monthly Business' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(#"PostgreSQL Server", #"PostgreSQL Database", [Query = "SELECT month_start AS ""Month Start"", active_paid_subscribers AS ""Active Paid Subscribers"", ending_paid_subscribers AS ""Ending Paid Subscribers"", basic_active_subscribers AS ""Basic Active Subscribers"", pro_active_subscribers AS ""Pro Active Subscribers"", monthly_active_paid_users AS ""Monthly Active Paid Users"", regular_paid_users AS ""Regular Paid Users"", new_paid_users AS ""New Paid Users"", churned_users AS ""Churned Users"", cash_revenue_rub AS ""Cash Revenue Rub"", subscription_mrr_rub AS ""Subscription MRR Rub"", addon_mrr_rub AS ""Add-on MRR Rub"", extra_device_slots AS ""Extra Device Slots"", normalized_mrr_rub AS ""Normalized MRR Rub"", connection_failure_rate AS ""Connection Failure Rate"", traffic_gb AS ""Traffic GB"" FROM analytics.mart_monthly_business ORDER BY month_start"])
+				in
+				    Source
+

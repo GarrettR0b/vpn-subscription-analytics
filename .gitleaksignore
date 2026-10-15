@@ -1,0 +1,3 @@
+# Verified false positive: the value is the SHA-256 of SankeyRenderer.jsx in this commit.
+# Keep the exception limited to this historical manifest entry.
+edc4ffd8e7526fae2eaea6c8ec3d3e25ed1d237f:dashboard/business-overview/protected-runtime.json:generic-api-key:53

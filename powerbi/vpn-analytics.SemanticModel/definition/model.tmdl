@@ -1,6 +1,8 @@
+/// Аналитическая модель подписочного VPN-сервиса: бизнес-метрики, активация, удержание и эксперимент онбординга.
 model Model
 	culture: ru-RU
 	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures
 	sourceQueryCulture: ru-RU
 	valueFilterBehavior: independent
 	dataAccessOptions
@@ -9,7 +11,15 @@ model Model
 
 annotation __PBI_TimeIntelligenceEnabled = 1
 
-annotation PBI_ProTooling = ["DevMode"]
+annotation PBI_ProTooling = ["DevMode","MCP-PBIModeling"]
+
+annotation PBI_QueryOrder = ["Date","Monthly Business","Subscriber Activation","Subscriber Retention","Activation Experiment","PostgreSQL Server","PostgreSQL Database"]
+
+ref table Date
+ref table 'Monthly Business'
+ref table 'Subscriber Activation'
+ref table 'Subscriber Retention'
+ref table 'Activation Experiment'
 
 ref cultureInfo ru-RU
 

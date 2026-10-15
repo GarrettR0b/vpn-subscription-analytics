@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.example
 .venv/
 __pycache__/
 *.py[cod]
@@ -8,8 +10,13 @@ __pycache__/
 *.egg-info/
 data/generated/*
 !data/generated/.gitkeep
-dashboard/screenshots/*.tmp
-dashboard/business-overview/dist/
-dashboard/business-overview/node_modules/
 powerbi/**/.pbi/
 *.log
+
+# Local handoffs and execution history are not public project documentation.
+/_brief/
+/.local/
+/docs/code-cleanup-handoff.md
+/docs/code-cleanup-results.md
+/docs/week1_acceptance.md
+/excel/

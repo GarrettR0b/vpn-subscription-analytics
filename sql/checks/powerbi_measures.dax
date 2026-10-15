@@ -1,0 +1,46 @@
+-- Execute against the refreshed Power BI model. Every row must have Passed = TRUE.
+-- Expected values describe the bundled January–June 2026 synthetic fixture.
+DEFINE
+    VAR _ages = DATATABLE(
+        "Age", INTEGER, "Expected N", INTEGER, "Expected Returned", INTEGER,
+        {
+            {0, 217, 217}, {1, 160, 90}, {2, 135, 65},
+            {3, 71, 14}, {4, 28, 5}, {5, 15, 3}
+        }
+    )
+    VAR _ageChecks = GENERATE(
+        _ages,
+        VAR _age = [Age]
+        VAR _n = CALCULATE([Observed Subscriptions], TREATAS({_age}, 'Subscriber Retention'[Month Number]))
+        VAR _returned = CALCULATE([Retained Subscribers], TREATAS({_age}, 'Subscriber Retention'[Month Number]))
+        VAR _rate = CALCULATE([Retention Rate], TREATAS({_age}, 'Subscriber Retention'[Month Number]))
+        RETURN ROW(
+            "Check", "Observed M" & _age,
+            "Passed", _n = [Expected N] && _returned = [Expected Returned]
+                && ABS(_rate - DIVIDE([Expected Returned], [Expected N])) < 0.00000001
+        )
+    )
+    VAR _otherChecks = UNION(
+        ROW("Check", "Russian Basic label", "Passed", CALCULATE([# Paid Subscriptions], TREATAS({"Basic"}, 'Subscriber Activation'[Тариф])) = 171),
+        ROW("Check", "Russian variant label preserves both arms", "Passed", CALCULATE([Control Sample], TREATAS({"Обычная настройка"}, 'Activation Experiment'[Вариант настройки])) = 109 && CALCULATE([Treatment Sample], TREATAS({"Обычная настройка"}, 'Activation Experiment'[Вариант настройки])) = 108),
+        ROW("Check", "Russian channel label", "Passed", CALCULATE([# Experiment Subscriptions], TREATAS({"Телеграм-бот"}, 'Activation Experiment'[Канал покупки])) = 160),
+        ROW("Check", "M1 total", "Passed", ABS([M1 Retention] - 0.5625) < 0.00000001),
+        ROW("Check", "M3 total", "Passed", ABS([M3 Retention] - DIVIDE(14, 71)) < 0.00000001),
+        ROW("Check", "M1 calendar May", "Passed", ABS(CALCULATE([M1 Retention], TREATAS({"2026-05"}, 'Date'[Month])) - 0.5625) < 0.00000001),
+        ROW("Check", "M1 calendar June denominator", "Passed", CALCULATE([M1 Observed Subscriptions], TREATAS({"2026-06"}, 'Date'[Month])) = 25),
+        ROW("Check", "Mixed ages blank", "Passed", ISBLANK([Retention Rate]) && ISBLANK([Retained Subscribers])),
+        ROW("Check", "June M1 not observed", "Passed", ISBLANK(CALCULATE([M1 Retention], TREATAS({DATE(2026, 6, 1)}, 'Subscriber Retention'[Cohort Month])))),
+        ROW("Check", "June M3 not observed", "Passed", ISBLANK(CALCULATE([M3 Retention], TREATAS({DATE(2026, 6, 1)}, 'Subscriber Retention'[Cohort Month])))),
+        ROW("Check", "June total is not M0 return", "Passed", ISBLANK(CALCULATE([Retention Rate], TREATAS({DATE(2026, 6, 1)}, 'Subscriber Retention'[Cohort Month])))),
+        ROW("Check", "Revenue", "Passed", [Revenue] = 489000),
+        ROW("Check", "Latest MRR", "Passed", [MRR] = 89930),
+        ROW("Check", "Lift pp", "Passed", ABS([Absolute Lift] - 6.124702684335714) < 0.00000001),
+        ROW("Check", "Relative lift unchanged", "Passed", ABS([Relative Lift] - 0.09964068546158103) < 0.00000001),
+        ROW("Check", "95 CI lower pp", "Passed", ABS([Lift CI Lower] + 6.579078245784208) < 0.00000001),
+        ROW("Check", "95 CI upper pp", "Passed", ABS([Lift CI Upper] - 18.828483614455635) < 0.00000001),
+        ROW("Check", "P value", "Passed", ABS([Activation P Value] - 0.3457709388185446) < 0.00000001),
+        ROW("Check", "Empty selection", "Passed", ISBLANK(CALCULATE([M1 Retention], TREATAS({"absent"}, 'Subscriber Retention'[Plan]))) && ISBLANK(CALCULATE([Absolute Lift], TREATAS({"absent"}, 'Activation Experiment'[Plan]))) && ISBLANK(CALCULATE([Activation P Value], TREATAS({"absent"}, 'Activation Experiment'[Plan]))))
+    )
+EVALUATE
+    UNION(SELECTCOLUMNS(_ageChecks, "Check", [Check], "Passed", [Passed]), _otherChecks)
+ORDER BY [Check]

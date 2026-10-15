@@ -1,4 +1,4 @@
--- Grain: one eligible paid subscription randomized into the onboarding experiment.
+-- Grain: one eligible paid subscription in the simulated onboarding comparison.
 
 CREATE OR REPLACE VIEW analytics.mart_activation_experiment AS
 SELECT
@@ -11,4 +11,4 @@ FROM analytics.mart_subscriber_activation
 WHERE onboarding_variant IN ('control', 'treatment');
 
 COMMENT ON VIEW analytics.mart_activation_experiment IS
-    'Randomized comparison of the standard subscription link and a guided HAPP setup reminder.';
+    'Simulated comparison of the standard subscription link and a guided HAPP setup reminder.';

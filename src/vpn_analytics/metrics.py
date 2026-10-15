@@ -148,7 +148,7 @@ def subscriber_activation_records(input_dir: Path) -> list[dict[str, Any]]:
 
 
 def activation_experiment_records(input_dir: Path) -> list[dict[str, Any]]:
-    """Return eligible rows from the randomized post-purchase onboarding experiment."""
+    """Return eligible rows from the simulated post-purchase onboarding comparison."""
     return [
         row
         for row in subscriber_activation_records(input_dir)
@@ -166,6 +166,8 @@ def activation_experiment_statistics(
     }
     if any(not rows for rows in grouped.values()):
         raise ValueError("Both experiment variants must contain eligible subscriptions")
+    if not 0 < mde < 1:
+        raise ValueError("MDE must be between 0 and 1")
 
     control_n = len(grouped["control"])
     treatment_n = len(grouped["treatment"])
@@ -176,8 +178,15 @@ def activation_experiment_statistics(
     effect = treatment_rate - control_rate
     pooled = (control_activated + treatment_activated) / (control_n + treatment_n)
     pooled_se = math.sqrt(pooled * (1 - pooled) * (1 / control_n + 1 / treatment_n))
-    z_score = effect / pooled_se if pooled_se else 0.0
-    p_value = 2 * (1 - NormalDist().cdf(abs(z_score)))
+    test_adequate = all(
+        min(n * pooled, n * (1 - pooled)) >= 5 for n in (control_n, treatment_n)
+    )
+    ci_adequate = min(
+        control_activated, control_n - control_activated,
+        treatment_activated, treatment_n - treatment_activated,
+    ) >= 5
+    z_score = effect / pooled_se if test_adequate and pooled_se else None
+    p_value = 2 * (1 - NormalDist().cdf(abs(z_score))) if z_score is not None else None
     effect_se = math.sqrt(
         control_rate * (1 - control_rate) / control_n
         + treatment_rate * (1 - treatment_rate) / treatment_n
@@ -205,15 +214,15 @@ def activation_experiment_statistics(
         "treatmentActivationRate": treatment_rate,
         "absoluteEffect": effect,
         "relativeLift": effect / control_rate if control_rate else None,
-        "ciLow": effect - z_critical * effect_se,
-        "ciHigh": effect + z_critical * effect_se,
+        "ciLow": effect - z_critical * effect_se if ci_adequate else None,
+        "ciHigh": effect + z_critical * effect_se if ci_adequate else None,
         "zScore": z_score,
         "pValue": p_value,
         "alpha": 0.05,
         "mde": mde,
         "requiredSampleSize": required_per_variant * 2,
         "observedSampleSize": control_n + treatment_n,
-        "statisticallySignificant": p_value < 0.05,
+        "statisticallySignificant": p_value is not None and p_value < 0.05,
     }
 
 

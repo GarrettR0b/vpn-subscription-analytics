@@ -1,0 +1,60 @@
+/// Календарь отчётного периода с дневной и месячной гранулярностью.
+table Date
+	lineageTag: d1baab98-9518-4767-b54a-5560bd328546
+	dataCategory: Time
+
+	/// Календарная дата отчётного периода.
+	column Date
+		dataType: dateTime
+		isUnique
+		isNullable: false
+		formatString: dd.MM.yyyy
+		lineageTag: b19fd2f1-c843-4c2a-97df-9fe371ed86ed
+		summarizeBy: none
+		sourceColumn: Date
+
+	/// Первый день календарного месяца; технический ключ связи и сортировки.
+	column 'Month Start'
+		dataType: dateTime
+		isHidden
+		isNullable: false
+		formatString: dd.MM.yyyy
+		lineageTag: 52806cd6-49b1-4fe2-b171-4fdd269e6f9b
+		summarizeBy: none
+		sourceColumn: Month Start
+
+	/// Календарный год.
+	column Year
+		dataType: int64
+		isNullable: false
+		lineageTag: 6f935b06-2449-47b7-b163-f585526f44fe
+		summarizeBy: none
+		sourceColumn: Year
+
+	/// Номер месяца для технической сортировки.
+	column 'Month Number'
+		dataType: int64
+		isHidden
+		isNullable: false
+		isAvailableInMdx: false
+		lineageTag: 5cb12055-5feb-4a68-b40d-f1824ea95326
+		summarizeBy: none
+		sourceColumn: Month Number
+
+	/// Месяц в формате ГГГГ-ММ.
+	column Month
+		dataType: string
+		isNullable: false
+		lineageTag: cb006dd2-9830-4021-b8bb-171afd1f36b2
+		summarizeBy: none
+		sourceColumn: Month
+		sortByColumn: 'Month Start'
+
+	partition Date = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(#"PostgreSQL Server", #"PostgreSQL Database", [Query = "WITH p AS (SELECT period_start::date, (period_end - INTERVAL '1 day')::date AS period_end FROM core.dataset_periods LIMIT 1) SELECT d::date AS ""Date"", DATE_TRUNC('month', d)::date AS ""Month Start"", EXTRACT(YEAR FROM d)::integer AS ""Year"", EXTRACT(MONTH FROM d)::integer AS ""Month Number"", TO_CHAR(d, 'YYYY-MM') AS ""Month"" FROM p CROSS JOIN LATERAL GENERATE_SERIES(p.period_start, p.period_end, INTERVAL '1 day') AS d ORDER BY d"])
+				in
+				    Source
+

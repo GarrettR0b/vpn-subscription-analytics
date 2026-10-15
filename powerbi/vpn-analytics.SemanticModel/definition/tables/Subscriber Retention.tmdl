@@ -1,0 +1,161 @@
+/// Одна подписка на один наблюдаемый календарный месяц для когортного анализа удержания.
+table 'Subscriber Retention'
+	lineageTag: b92d6672-0939-448d-9099-296f73730dad
+
+	/// Размер M0 когорт, представленных в текущем срезе. Не используется как знаменатель разных возрастов; для retention - Observed Subscriptions.
+	measure 'Cohort Size' =
+			VAR _cohorts = CALCULATETABLE(VALUES('Subscriber Retention'[Cohort Month]), REMOVEFILTERS('Subscriber Retention'[Retained]))
+			RETURN CALCULATE(DISTINCTCOUNT('Subscriber Retention'[Subscription ID]), REMOVEFILTERS('Date'), REMOVEFILTERS('Subscriber Retention'[Activity Month], 'Subscriber Retention'[Month Number], 'Subscriber Retention'[Retained]), TREATAS(_cohorts, 'Subscriber Retention'[Cohort Month]), 'Subscriber Retention'[Month Number] = 0)
+		formatString: #,##0
+		displayFolder: Retention KPIs
+		lineageTag: 0027fc20-ba20-4084-9e29-efecff5da4b6
+
+	/// Вернувшиеся подписки одного наблюдаемого возраста; ноль при наблюдаемом отсутствии возвратов, BLANK без единого возраста/наблюдений. M0 - 100% baseline.
+	measure 'Retained Subscribers' = IF(HASONEVALUE('Subscriber Retention'[Month Number]) && (ISINSCOPE('Subscriber Retention'[Month Number]) || ISFILTERED('Subscriber Retention'[Month Number])), IF([Observed Subscriptions] > 0, COALESCE(CALCULATE(DISTINCTCOUNT('Subscriber Retention'[Subscription ID]), KEEPFILTERS('Subscriber Retention'[Retained] = TRUE())), 0)))
+		formatString: #,##0
+		displayFolder: Retention KPIs
+		lineageTag: 9e1488aa-a5f8-48c7-830f-fff5481291b8
+
+	/// Вернувшиеся / все наблюдаемые подписки одного возраста. Молодые когорты без наблюдения исключены; итог по разным возрастам BLANK.
+	measure 'Retention Rate' = IF(HASONEVALUE('Subscriber Retention'[Month Number]) && (ISINSCOPE('Subscriber Retention'[Month Number]) || ISFILTERED('Subscriber Retention'[Month Number])), DIVIDE([Retained Subscribers], [Observed Subscriptions]))
+		formatString: 0.0%
+		displayFolder: Retention KPIs
+		lineageTag: 1b2b85a7-070c-49c7-8f69-85a95821580f
+
+	/// Возврат M1 по когортам, достигшим M1. Календарь фильтрует месяц активности; тариф, канал и активация сохранены.
+	measure 'M1 Retention' = CALCULATE([Retention Rate], 'Subscriber Retention'[Month Number] = 1)
+		formatString: 0.0%
+		displayFolder: Retention KPIs
+		lineageTag: 070044a1-5fb3-480b-bd32-26a5e29bf863
+
+	/// Возврат M3 по когортам, достигшим M3; отсутствующий M3 не считается нулём.
+	measure 'M3 Retention' = CALCULATE([Retention Rate], 'Subscriber Retention'[Month Number] = 3)
+		formatString: 0.0%
+		displayFolder: Retention KPIs
+		lineageTag: c5912345-fdd2-4643-866c-2646d9423f5f
+
+	/// Знаменатель retention: подписки с наблюдаемым выбранным возрастом, включая не вернувшихся. Сохраняет фильтры возраста, календаря, когорты, тарифа и активации.
+	measure 'Observed Subscriptions' = CALCULATE(DISTINCTCOUNT('Subscriber Retention'[Subscription ID]), REMOVEFILTERS('Subscriber Retention'[Retained]))
+		formatString: #,##0
+		displayFolder: Retention KPIs
+		lineageTag: b76a6b2d-597d-48d7-8e57-2c16545a03af
+
+	/// Число подписок с наблюдаемым M1 в текущем срезе.
+	measure 'M1 Observed Subscriptions' = CALCULATE([Observed Subscriptions], 'Subscriber Retention'[Month Number] = 1)
+		formatString: #,##0
+		displayFolder: Retention KPIs
+		lineageTag: b6db75bb-3e2a-4051-9417-561b74a80537
+
+	/// Число подписок с наблюдаемым M3 в текущем срезе.
+	measure 'M3 Observed Subscriptions' = CALCULATE([Observed Subscriptions], 'Subscriber Retention'[Month Number] = 3)
+		formatString: #,##0
+		displayFolder: Retention KPIs
+		lineageTag: 7847de45-c76d-48b4-b713-bcdadcd132ea
+
+	/// Подписки, вернувшиеся в наблюдаемом M1.
+	measure 'M1 Retained Subscribers' = CALCULATE([Retained Subscribers], 'Subscriber Retention'[Month Number] = 1)
+		formatString: #,##0
+		displayFolder: Retention KPIs
+		lineageTag: f6e2ec2b-fd0e-483c-b467-9ef0a275a7a9
+
+	column 'User ID'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 7d3cef52-d28d-4f16-8e1e-f32c84b2b9d0
+		summarizeBy: none
+		sourceColumn: User ID
+
+	column 'Subscription ID'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 87cde3e1-4d09-4180-b558-1f052fe543b6
+		summarizeBy: none
+		sourceColumn: Subscription ID
+
+	/// Месяц начала платной подписки.
+	column 'Cohort Month'
+		dataType: dateTime
+		formatString: MMM yyyy
+		lineageTag: 2236291d-f24d-4fe3-9dc9-a43879d31c57
+		summarizeBy: none
+		sourceColumn: Cohort Month
+
+	column 'Activity Month'
+		dataType: dateTime
+		isHidden
+		formatString: MMM yyyy
+		lineageTag: d0c52a14-822b-41e6-87f8-131e96fba988
+		summarizeBy: none
+		sourceColumn: Activity Month
+
+	/// Возраст когорты в месяцах: M0 - базовый месяц.
+	column 'Month Number'
+		dataType: int64
+		lineageTag: 9a90cc99-a0a3-427e-a106-4864a475bc19
+		summarizeBy: none
+		sourceColumn: Month Number
+
+	/// Канал покупки подписки.
+	column 'Sales Channel'
+		dataType: string
+		lineageTag: e19bdc45-4161-4346-b985-14d8955f3592
+		summarizeBy: none
+		sourceColumn: Sales Channel
+
+	/// Тариф подписки: Basic или Pro.
+	column Plan
+		dataType: string
+		lineageTag: 266305c0-be2d-4f75-ae75-5f9a6f9d693d
+		summarizeBy: none
+		sourceColumn: Plan
+
+	/// Признак ранней активации подписки в первые 7 дней.
+	column 'Activated 7D'
+		dataType: boolean
+		lineageTag: 0ad0d5bf-c540-4952-b021-6cd179a9bf9d
+		summarizeBy: none
+		sourceColumn: Activated 7D
+
+	column 'Successful Sessions'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: bb5bd198-39a8-4591-afd0-862190d4fd7f
+		sourceColumn: Successful Sessions
+
+	column Retained
+		dataType: boolean
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 2502e93c-1dd7-4367-848d-1a908cdccd5e
+		summarizeBy: none
+		sourceColumn: Retained
+
+	/// Название тарифа для отчёта; исходный код Plan сохранён.
+	column Тариф = SWITCH('Subscriber Retention'[Plan], "basic", "Basic", "pro", "Pro", "Неизвестный тариф")
+		dataType: string
+		lineageTag: 69552bda-f580-4f43-9805-bf6af8dcd557
+		summarizeBy: none
+
+	/// Русское название канала покупки; исходный код Sales Channel сохранён.
+	column 'Канал покупки' = SWITCH('Subscriber Retention'[Sales Channel], "telegram_bot", "Телеграм-бот", "website", "Сайт", "Другой канал")
+		dataType: string
+		lineageTag: 98842f06-553e-4f42-9737-26ebb9c92503
+		summarizeBy: none
+
+	/// Активация в первые семь дней после оплаты.
+	column 'Ранняя активация' = IF('Subscriber Retention'[Activated 7D], "Активирован", "Не активирован")
+		dataType: string
+		lineageTag: ae3da6ed-ebf7-430b-860a-36080b416ec5
+		summarizeBy: none
+
+	partition 'Subscriber Retention' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(#"PostgreSQL Server", #"PostgreSQL Database", [Query = "SELECT user_id AS ""User ID"", subscription_id AS ""Subscription ID"", cohort_month AS ""Cohort Month"", activity_month AS ""Activity Month"", month_number AS ""Month Number"", sales_channel AS ""Sales Channel"", plan AS ""Plan"", activated_7d AS ""Activated 7D"", successful_sessions AS ""Successful Sessions"", retained AS ""Retained"" FROM analytics.mart_subscriber_retention"])
+				in
+				    Source
+

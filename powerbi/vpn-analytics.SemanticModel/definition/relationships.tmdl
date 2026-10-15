@@ -1,0 +1,20 @@
+relationship MonthlyBusinessToDate
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Monthly Business'.'Month Start'
+	toColumn: Date.Date
+
+relationship SubscriberActivationToDate
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Subscriber Activation'.'Subscription Start Date'
+	toColumn: Date.Date
+
+relationship SubscriberRetentionToDate
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Subscriber Retention'.'Activity Month'
+	toColumn: Date.Date
+
+relationship ActivationExperimentToDate
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Activation Experiment'.'Subscription Start Date'
+	toColumn: Date.Date
+

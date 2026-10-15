@@ -70,12 +70,18 @@ def main() -> int:
                 "addon_mrr_rub": float(row[8]),
                 "extra_device_slots": row[9],
                 "normalized_mrr_rub": float(row[10]),
+                "cash_revenue_rub": float(row[11]),
+                "subscription_mrr_rub": float(row[12]),
+                "traffic_gb": float(row[13]),
+                "connection_failure_rate": float(row[14]) if row[14] is not None else None,
+                "active_paid_subscribers": row[15],
             }
             for row in connection.execute(
                 "SELECT month_start, monthly_active_paid_users, regular_paid_users, "
                 "new_paid_users, churned_users, ending_paid_subscribers, "
                 "basic_active_subscribers, pro_active_subscribers, addon_mrr_rub, extra_device_slots, "
-                "normalized_mrr_rub "
+                "normalized_mrr_rub, cash_revenue_rub, subscription_mrr_rub, traffic_gb, "
+                "connection_failure_rate, active_paid_subscribers "
                 "FROM analytics.mart_monthly_business"
             ).fetchall()
         }
@@ -129,6 +135,22 @@ def main() -> int:
             or abs(python_row["addon_mrr_rub"] - database_row["addon_mrr_rub"]) > 0.01
             or python_row["extra_device_slots"] != database_row["extra_device_slots"]
             or abs(python_row["normalized_mrr_rub"] - database_row["normalized_mrr_rub"]) > 0.01
+            or abs(python_row["cash_revenue_rub"] - database_row["cash_revenue_rub"]) > 0.01
+            or abs(python_row["subscription_mrr_rub"] - database_row["subscription_mrr_rub"])
+            > 0.01
+            or abs(python_row["traffic_gb"] - database_row["traffic_gb"]) > 0.000001
+            or (
+                (python_row["connection_failure_rate"] is None)
+                != (database_row["connection_failure_rate"] is None)
+            )
+            or (
+                python_row["connection_failure_rate"] is not None
+                and database_row["connection_failure_rate"] is not None
+                and abs(
+                    python_row["connection_failure_rate"] - database_row["connection_failure_rate"]
+                ) > 0.000000001
+            )
+            or python_row["active_paid_subscribers"] != database_row["active_paid_subscribers"]
         ):
             monthly_values.append(month_start)
 

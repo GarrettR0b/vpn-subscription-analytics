@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import nbformat as nbf
@@ -32,13 +33,27 @@ def _percent(value: float) -> str:
     return f"{value:.1%}".replace(".", ",")
 
 
-def build_notebook(input_dir: Path) -> nbf.NotebookNode:
+def build_notebook(input_dir: Path, output_dir: Path) -> nbf.NotebookNode:
+    data_path = Path(os.path.relpath(input_dir.resolve(), output_dir.resolve())).as_posix()
     records = activation_experiment_records(input_dir)
     result = activation_experiment_statistics(records)
     decision = (
-        "эффект подтверждён"
-        if result["statisticallySignificant"] and result["ciLow"] > 0
-        else "данных недостаточно для запуска на всех пользователей"
+        "положительная разность статистически значима в симуляции"
+        if result["statisticallySignificant"] and result["ciLow"] is not None
+        and result["ciLow"] > 0
+        else "статистических оснований заявлять положительный эффект нет"
+    )
+    ci_text = (
+        f"[{result['ciLow'] * 100:+.1f}; {result['ciHigh'] * 100:+.1f}] п.п."
+        if result["ciLow"] is not None else "не оценивается: мало наблюдений"
+    )
+    p_text = f"{result['pValue']:.3f}" if result["pValue"] is not None else "не оценивается"
+    uncertainty = (
+        "Доверительный интервал не оценивается: мало успехов или неуспехов в группах."
+        if result["ciLow"] is None else
+        "Доверительный интервал пересекает ноль."
+        if result["ciLow"] <= 0 <= result["ciHigh"] else
+        "Доверительный интервал не включает ноль."
     )
 
     notebook = nbf.v4.new_notebook()
@@ -49,8 +64,11 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
     notebook["cells"] = [
         nbf.v4.new_markdown_cell(
             "# A/B-тест онбординга VPN через HAPP\n\n"
-            "Синтетический рандомизированный эксперимент после покупки подписки: стандартная "
-            "выдача ссылки против автоматического напоминания с короткой инструкцией настройки."
+            "Синтетический сценарий A/B-сравнения после покупки подписки: стандартная "
+            "выдача ссылки против автоматического напоминания с короткой инструкцией настройки. "
+            "Часть показательного кейса на основе реального проекта автора. Для соблюдения "
+            "конфиденциальности данные и численные результаты публичной версии воссозданы "
+            "синтетически; фактический коммерческий эффект оригинала не раскрывается."
         ),
         nbf.v4.new_markdown_cell(
             "## tl;dr\n\n"
@@ -59,20 +77,24 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
             f"- Treatment: **{result['treatmentSubscriptions']}** подписок, activation "
             f"**{_percent(result['treatmentActivationRate'])}**.\n"
             f"- Наблюдаемый эффект: **{result['absoluteEffect'] * 100:+.1f} п.п.**, "
-            f"95% ДИ **[{result['ciLow'] * 100:+.1f}; {result['ciHigh'] * 100:+.1f}] п.п.**, "
-            f"p-value **{result['pValue']:.3f}**.\n"
-            f"- Решение: **{decision}**; для MDE 12 п.п. требуется около "
+            f"95% ДИ **{ci_text}**, p-value **{p_text}**.\n"
+            f"- Интерпретация симуляции: **{decision}**; для MDE 12 п.п. требуется около "
             f"**{result['requiredSampleSize']}** участников."
         ),
         nbf.v4.new_markdown_cell(
             "## Context & Methods\n\n"
             "**Гипотеза:** напоминание с инструкцией HAPP повышает 7-day activation. "
-            "Primary metric — доля подписок, которые за 7 дней загрузили ссылку, провели не "
+            "Primary metric - доля подписок, которые за 7 дней загрузили ссылку, провели не "
             "менее трёх успешных сессий в два UTC-дня и набрали 30 минут трафика. "
-            "Secondary metrics — загрузка ссылки и time-to-value; guardrail — доля ошибок.\n\n"
-            "Распределение 50/50 выполняется после покупки. Используется двусторонний z-тест "
+            "Secondary metrics - загрузка ссылки и time-to-value; guardrail - доля ошибок.\n\n"
+            "Генератор назначает группы по чётности индекса пользователя; после отбора "
+            "покупок и eligibility размеры групп могут различаться. Независимой рандомизации "
+            "нет, преимущества treatment заданы параметрами генерации. Ниже показан расчёт "
+            "статистики для такого синтетического сравнения, без вывода о реальном эффекте. "
+            "Используется двусторонний z-тест "
             "двух долей, α=0,05, 95% ДИ для разности долей и планирование размера выборки с "
-            "power=80%. Все данные синтетические."
+            "power=80%. Оценки скрыты, если ожидаемых исходов для z-теста или фактических "
+            "успехов/неуспехов для ДИ меньше пяти в любой группе. Все данные синтетические."
         ),
         nbf.v4.new_code_cell(
             "from pathlib import Path\n\n"
@@ -81,8 +103,7 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
             "from vpn_analytics.metrics import (\n"
             "    activation_experiment_records, activation_experiment_statistics,\n"
             ")\n\n"
-            'ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()\n'
-            'DATA_DIR = ROOT / "data" / "generated"\n'
+            f'DATA_DIR = Path({data_path!r}).resolve()\n'
             'plt.style.use("seaborn-v0_8-whitegrid")\n'
             'COLORS = {"control": "#64748B", "treatment": "#2A9D8F"}'
         ),
@@ -114,14 +135,19 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
             "axes[0].set_ylim(0, 1)\n"
             'axes[0].yaxis.set_major_formatter(lambda value, _: f"{value:.0%}")\n'
             'effect = result["absoluteEffect"] * 100\n'
-            "axes[1].errorbar(\n"
-            "    effect, 0,\n"
-            '    xerr=[[effect - result["ciLow"] * 100], [result["ciHigh"] * 100 - effect]],\n'
-            '    fmt="o", color=COLORS["treatment"], capsize=6, markersize=8,\n'
-            ")\n"
+            'if result["ciLow"] is not None:\n'
+            "    axes[1].errorbar(\n"
+            "        effect, 0,\n"
+            '        xerr=[[effect - result["ciLow"] * 100], [result["ciHigh"] * 100 - effect]],\n'
+            '        fmt="o", color=COLORS["treatment"], capsize=6, markersize=8,\n'
+            "    )\n"
+            'else:\n'
+            '    axes[1].text(0.5, 0.5, "ДИ не оценивается: мало наблюдений",\n'
+            '                 transform=axes[1].transAxes, ha="center")\n'
             'axes[1].axvline(0, color="#334155", linewidth=1)\n'
             'axes[1].set(title="Эффект treatment и 95% ДИ", xlabel="Разница, п.п.", yticks=[])\n'
-            'axes[1].text(effect, 0.08, f"{effect:+.1f} п.п.; p={result["pValue"]:.3f}", ha="center")\n'
+            'p_text = format(result["pValue"], ".3f") if result["pValue"] is not None else "-"\n'
+            'axes[1].text(effect, 0.08, f"{effect:+.1f} п.п.; p={p_text}", ha="center")\n'
             "plt.tight_layout();"
         ),
         nbf.v4.new_code_cell(
@@ -142,12 +168,14 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
         ),
         nbf.v4.new_markdown_cell(
             "## Takeaways\n\n"
-            f"1. Treatment дал наблюдаемый uplift **{result['absoluteEffect'] * 100:+.1f} п.п.**, "
-            "но доверительный интервал пересекает ноль.\n"
+            f"1. В симуляции разность treatment − control равна "
+            f"**{result['absoluteEffect'] * 100:+.1f} п.п.**. "
+            f"{uncertainty}\n"
             "2. Нельзя объявлять победителя только по положительному point estimate: текущая выборка "
-            f"**{result['observedSampleSize']}** меньше расчётной **{result['requiredSampleSize']}**.\n"
-            "3. Эксперимент следует продолжить до плановой выборки, контролируя ошибки подключения; "
-            "останавливать его по промежуточному p-value нельзя."
+            f"**{result['observedSampleSize']}**, расчётная **{result['requiredSampleSize']}**.\n"
+            "3. Для реальной проверки нужны независимая рандомизация, заранее заданные "
+            "выборка и правило остановки, контроль ошибок подключения. Дополнительные "
+            "синтетические строки не заменяют эксперимент на реальных пользователях."
         ),
     ]
     return notebook
@@ -155,7 +183,7 @@ def build_notebook(input_dir: Path) -> nbf.NotebookNode:
 
 def main() -> int:
     args = _arguments()
-    notebook = build_notebook(args.input_dir)
+    notebook = build_notebook(args.input_dir, args.output.parent)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     nbf.write(notebook, args.output)
     if not args.no_execute:
@@ -170,6 +198,7 @@ def main() -> int:
         ).execute()
         nbf.write(notebook, args.output)
         html_body, _ = HTMLExporter(template_name="lab").from_notebook_node(notebook)
+        args.html_output.parent.mkdir(parents=True, exist_ok=True)
         args.html_output.write_text(html_body, encoding="utf-8")
     print(
         json.dumps(

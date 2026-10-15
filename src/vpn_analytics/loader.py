@@ -25,6 +25,11 @@ def _arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Load generated VPN CSV files into PostgreSQL.")
     parser.add_argument("--input-dir", type=Path, default=root / "data" / "generated")
     parser.add_argument(
+        "--reset-database",
+        metavar="DATABASE_NAME",
+        help="Confirm the exact database whose core and analytics schemas will be replaced.",
+    )
+    parser.add_argument(
         "--database-url",
         default=os.environ.get(
             "DATABASE_URL",
@@ -43,6 +48,9 @@ def _arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = _arguments(argv)
+    if not args.reset_database:
+        print("Load refused: pass --reset-database DATABASE_NAME to confirm schema replacement.")
+        return 2
     csv_results = validate_dataset(args.input_dir)
     if any(result.failure_count for result in csv_results):
         print("CSV validation failed; PostgreSQL load was not attempted.")
@@ -60,6 +68,11 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     with psycopg.connect(args.database_url) as connection:
         with connection.cursor() as cursor:
+            cursor.execute("SELECT current_database()")
+            if cursor.fetchone()[0] != args.reset_database:
+                print("Load refused: connected database does not match --reset-database.")
+                return 2
+            cursor.execute("SET LOCAL TIME ZONE 'UTC'")
             cursor.execute(args.schema_sql.read_text(encoding="utf-8"))
             for table_name in LOAD_ORDER:
                 fields = TABLE_FIELDS[table_name]

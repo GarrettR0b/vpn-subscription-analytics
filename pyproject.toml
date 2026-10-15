@@ -37,7 +37,7 @@ check-vpn-data = "vpn_analytics.data_quality:main"
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "scripts"]
 testpaths = ["tests"]
 
 [tool.ruff]

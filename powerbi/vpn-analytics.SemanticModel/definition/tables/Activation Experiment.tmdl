@@ -1,0 +1,175 @@
+/// Одна eligible-подписка в синтетическом сравнении вариантов онбординга HAPP; группы заданы чётностью индекса пользователя, преимущества treatment - генератором.
+table 'Activation Experiment'
+	lineageTag: 124a649f-74a0-47a3-8a44-2299817951ba
+
+	/// Размер выборки эксперимента в текущем контексте фильтров.
+	measure '# Experiment Subscriptions' = DISTINCTCOUNT('Activation Experiment'[Subscription ID])
+		formatString: #,##0
+		displayFolder: Experiment KPIs
+		lineageTag: 452750b2-5cc4-4cc9-975c-6be143d86739
+
+	/// Доля подписок эксперимента, активировавшихся за 7 дней.
+	measure 'Experiment Activation Rate' = DIVIDE(CALCULATE(DISTINCTCOUNT('Activation Experiment'[Subscription ID]), KEEPFILTERS('Activation Experiment'[Activated 7D] = TRUE())), [# Experiment Subscriptions])
+		formatString: 0.0%
+		displayFolder: Experiment KPIs
+		lineageTag: 9cdbe6c5-00b8-4347-8997-eca5c28f2f5f
+
+	/// Доля подписок эксперимента, получивших ссылку в HAPP за 7 дней.
+	measure 'Experiment Link Fetch Rate' = DIVIDE(CALCULATE(DISTINCTCOUNT('Activation Experiment'[Subscription ID]), KEEPFILTERS('Activation Experiment'[Link Fetched 7D] = TRUE())), [# Experiment Subscriptions])
+		formatString: 0.0%
+		displayFolder: Experiment KPIs
+		lineageTag: e6f8ffd4-ff37-4d15-9ff6-d279bd68cea2
+
+	/// Число подписок в контрольном варианте после применения остальных фильтров.
+	measure 'Control Sample' = CALCULATE([# Experiment Subscriptions], REMOVEFILTERS('Activation Experiment'[Onboarding Variant], 'Activation Experiment'[Вариант настройки]), 'Activation Experiment'[Onboarding Variant] = "control")
+		formatString: #,##0
+		displayFolder: Experiment KPIs
+		lineageTag: cb8156f3-3adc-4c38-ab5c-bb6bf9286dc6
+
+	/// Число подписок в улучшенном варианте после применения остальных фильтров.
+	measure 'Treatment Sample' = CALCULATE([# Experiment Subscriptions], REMOVEFILTERS('Activation Experiment'[Onboarding Variant], 'Activation Experiment'[Вариант настройки]), 'Activation Experiment'[Onboarding Variant] = "treatment")
+		formatString: #,##0
+		displayFolder: Experiment KPIs
+		lineageTag: 45e9bb99-331f-42ea-b57c-cfc5231459b5
+
+	/// Активация контрольного варианта после применения остальных фильтров.
+	measure 'Control Activation Rate' = CALCULATE([Experiment Activation Rate], REMOVEFILTERS('Activation Experiment'[Onboarding Variant], 'Activation Experiment'[Вариант настройки]), 'Activation Experiment'[Onboarding Variant] = "control")
+		formatString: 0.0%
+		displayFolder: Experiment KPIs
+		lineageTag: 45fbd011-c80e-4614-b4a1-505da157af8d
+
+	/// Активация улучшенного варианта после применения остальных фильтров.
+	measure 'Treatment Activation Rate' = CALCULATE([Experiment Activation Rate], REMOVEFILTERS('Activation Experiment'[Onboarding Variant], 'Activation Experiment'[Вариант настройки]), 'Activation Experiment'[Onboarding Variant] = "treatment")
+		formatString: 0.0%
+		displayFolder: Experiment KPIs
+		lineageTag: 9f3d5034-ea49-452f-8ae9-9d8dcae58bd2
+
+	/// Разность activation treatment − control, умноженная на 100, в процентных пунктах. BLANK при отсутствии одной группы.
+	measure 'Absolute Lift' = IF([Control Sample] > 0 && [Treatment Sample] > 0, 100 * ([Treatment Activation Rate] - [Control Activation Rate]))
+		formatString: +0.00 "п.п.";-0.00 "п.п.";0.00 "п.п."
+		displayFolder: Experiment KPIs
+		lineageTag: 33795fea-55ac-48bc-a365-9cfcac1f9f6b
+
+	/// Относительное изменение активации treatment к control.
+	measure 'Relative Lift' = DIVIDE([Absolute Lift] / 100, [Control Activation Rate])
+		formatString: 0.0%
+		displayFolder: Experiment KPIs
+		lineageTag: cd843b29-06d0-4866-b1c8-ed92e457ec91
+
+	/// Непулированная стандартная ошибка разности долей в п.п.; BLANK при менее 5 успехах/неуспехах в любой группе.
+	measure 'Lift Standard Error' =
+			VAR _controlN = [Control Sample]
+			VAR _treatmentN = [Treatment Sample]
+			VAR _controlRate = [Control Activation Rate]
+			VAR _treatmentRate = [Treatment Activation Rate]
+			VAR _adequate = MIN(_controlN * _controlRate, _controlN * (1 - _controlRate)) >= 5 && MIN(_treatmentN * _treatmentRate, _treatmentN * (1 - _treatmentRate)) >= 5
+			RETURN IF(_adequate, 100 * SQRT(DIVIDE(_controlRate * (1 - _controlRate), _controlN) + DIVIDE(_treatmentRate * (1 - _treatmentRate), _treatmentN)))
+		formatString: 0.00 "п.п."
+		isHidden
+		displayFolder: Experiment Statistics
+		lineageTag: 90222184-a58b-4edd-8dd5-790442ddc82b
+
+	/// Нижняя граница 95% Wald-интервала разности долей, п.п. Пересчитывается по фильтрам; BLANK при малой группе.
+	measure 'Lift CI Lower' = IF(NOT ISBLANK([Lift Standard Error]), [Absolute Lift] - 1.959963984540054 * [Lift Standard Error])
+		formatString: +0.00 "п.п.";-0.00 "п.п.";0.00 "п.п."
+		displayFolder: Experiment Statistics
+		lineageTag: eb1a4192-95db-4467-beb4-60ad2d5abfdd
+
+	/// Верхняя граница 95% Wald-интервала разности долей, п.п.
+	measure 'Lift CI Upper' = IF(NOT ISBLANK([Lift Standard Error]), [Absolute Lift] + 1.959963984540054 * [Lift Standard Error])
+		formatString: +0.00 "п.п.";-0.00 "п.п.";0.00 "п.п."
+		displayFolder: Experiment Statistics
+		lineageTag: bc1c3ed8-b6b3-4576-a749-b9004a0872f4
+
+	/// Двусторонний pooled z-тест разности долей. BLANK при менее 5 ожидаемых успехах/неуспехах в группе; сегментные тесты exploratory, без коррекции множественных сравнений.
+	measure 'Activation P Value' =
+			VAR _controlN = [Control Sample]
+			VAR _treatmentN = [Treatment Sample]
+			VAR _pooledRate = DIVIDE(_controlN * [Control Activation Rate] + _treatmentN * [Treatment Activation Rate], _controlN + _treatmentN)
+			VAR _adequate = MIN(_controlN * _pooledRate, _controlN * (1 - _pooledRate)) >= 5 && MIN(_treatmentN * _pooledRate, _treatmentN * (1 - _pooledRate)) >= 5
+			VAR _se = SQRT(_pooledRate * (1 - _pooledRate) * (DIVIDE(1, _controlN) + DIVIDE(1, _treatmentN)))
+			VAR _z = DIVIDE(ABS([Absolute Lift]) / 100, _se)
+			RETURN IF(_adequate && _se > 0, 2 * (1 - NORM.S.DIST(_z, TRUE())))
+		formatString: 0.000
+		displayFolder: Experiment Statistics
+		lineageTag: 62e64196-fcd4-4e9e-97a2-f4a304aaed76
+
+	column 'Subscription ID'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 0fcd36b2-981b-402b-b975-d6efbd53db99
+		summarizeBy: none
+		sourceColumn: Subscription ID
+
+	column 'Subscription Start Date'
+		dataType: dateTime
+		isHidden
+		formatString: dd.MM.yyyy
+		lineageTag: 0321dcc4-bd3f-47b0-8e2d-c00fc8898dae
+		summarizeBy: none
+		sourceColumn: Subscription Start Date
+
+	/// Канал покупки подписки.
+	column 'Sales Channel'
+		dataType: string
+		lineageTag: f1f03641-1ab1-4087-8a5e-3de086390117
+		summarizeBy: none
+		sourceColumn: Sales Channel
+
+	/// Тариф подписки: Basic или Pro.
+	column Plan
+		dataType: string
+		lineageTag: 8eb638dc-5f3e-4510-8337-4c34324278a5
+		summarizeBy: none
+		sourceColumn: Plan
+
+	/// Экспериментальная группа: control или treatment.
+	column 'Onboarding Variant'
+		dataType: string
+		lineageTag: 9b918795-cf36-47fa-aca1-91679cfe377e
+		summarizeBy: none
+		sourceColumn: Onboarding Variant
+
+	column 'Activated 7D'
+		dataType: boolean
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: e75aa0c6-5696-43c9-845c-135c36f8ea12
+		summarizeBy: none
+		sourceColumn: Activated 7D
+
+	column 'Link Fetched 7D'
+		dataType: boolean
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: d8434823-18b9-48ee-9b2e-87cd9ef8ac01
+		summarizeBy: none
+		sourceColumn: Link Fetched 7D
+
+	/// Название тарифа для отчёта; исходный код Plan сохранён.
+	column Тариф = SWITCH('Activation Experiment'[Plan], "basic", "Basic", "pro", "Pro", "Неизвестный тариф")
+		dataType: string
+		lineageTag: 79a2058c-8101-4928-97c7-e10b15e24f34
+		summarizeBy: none
+
+	/// Русское название канала покупки; исходный код Sales Channel сохранён.
+	column 'Канал покупки' = SWITCH('Activation Experiment'[Sales Channel], "telegram_bot", "Телеграм-бот", "website", "Сайт", "Другой канал")
+		dataType: string
+		lineageTag: 6ac9ba2f-9e61-4125-9c62-c43ad306f1e6
+		summarizeBy: none
+
+	/// Понятное название контрольного и нового вариантов первоначальной настройки.
+	column 'Вариант настройки' = SWITCH('Activation Experiment'[Onboarding Variant], "control", "Обычная настройка", "treatment", "Настройка с подсказками", "Другой вариант")
+		dataType: string
+		lineageTag: 2d05b9d8-9ae4-45d0-b55a-608583c16aa5
+		summarizeBy: none
+
+	partition 'Activation Experiment' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(#"PostgreSQL Server", #"PostgreSQL Database", [Query = "SELECT subscription_id AS ""Subscription ID"", subscription_started_at::date AS ""Subscription Start Date"", sales_channel AS ""Sales Channel"", plan AS ""Plan"", onboarding_variant AS ""Onboarding Variant"", activated_7d AS ""Activated 7D"", link_fetched_7d AS ""Link Fetched 7D"" FROM analytics.mart_activation_experiment"])
+				in
+				    Source
+
